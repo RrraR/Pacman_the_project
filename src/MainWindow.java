@@ -1,5 +1,8 @@
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.IOException;
 
 public class MainWindow{
@@ -16,7 +19,7 @@ public class MainWindow{
             {W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W},
             {W,F,F,F,F,F,F,F,F,F,F,F,F,W,W,F,F,F,F,F,F,F,F,F,F,F,F,W},
             {W,F,W,W,W,W,F,W,W,W,W,W,F,W,W,F,W,W,W,W,W,F,W,W,W,W,F,W},
-            {W,F,W,W,W,W,F,W,W,W,W,W,F,W,W,F,W,W,W,W,W,F,W,W,W,W,F,W},
+            {W,F,W,E,E,W,F,W,E,E,E,W,F,W,W,F,W,E,E,E,W,F,W,E,E,W,F,W},
             {W,F,W,W,W,W,F,W,W,W,W,W,F,W,W,F,W,W,W,W,W,F,W,W,W,W,F,W},
             {W,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,W},
             {W,F,W,W,W,W,F,W,W,F,W,W,W,W,W,W,W,W,F,W,W,F,W,W,W,W,F,W},
@@ -71,9 +74,9 @@ public class MainWindow{
         statusBar.setBackground(Color.black);
     }
 
-    private void drawBoardBackground(){
+    private void drawBoardBackground() throws IOException {
         mapPanel = new JPanel(){
-//            private Image pac = ImageIO.read(getClass().getClassLoader().getResource("img/" + "Heart.png"));
+            BufferedImage mapImg = ImageIO.read(new File("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\pacmanAssets_resizefor15.png"));
 
             public void paint (Graphics g){
                 super.paint(g);
@@ -81,16 +84,8 @@ public class MainWindow{
                 {
                     for (int j = 0; j < board.length; j++)
                     {
-                        g.setColor(Color.white);
-                        if (board[j][i] == W)
-                        {
-                            g.setColor(Color.BLACK);
-                        }
-                        else if (board[j][i] == F)
-                        {
-                            g.setColor(Color.yellow);
-                        }
-                        g.fillRect(i * 15,j * 15, 15, 15);
+                        BufferedImage img = mapImg.getSubimage(i * 15, j * 15, 15, 15);
+                        g.drawImage(img, i * 15, j * 15, null);
                     }
                 }
 
