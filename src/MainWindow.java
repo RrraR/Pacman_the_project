@@ -53,7 +53,8 @@ public class MainWindow{
         //extra height 35
         //extra width 12
         frame = new JFrame("Main Window Test");
-        frame.setSize(431, 529);
+//        frame.setSize(432, 529);
+
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setLayout(new BorderLayout());
         frame.setResizable(false);
@@ -62,21 +63,28 @@ public class MainWindow{
         frame.getContentPane().add(statusBar, BorderLayout.NORTH);
 
         drawBoardBackground();
+        mapPanel.setPreferredSize(new Dimension(420, 465));
         frame.getContentPane().add(mapPanel);
 
+        JPanel pacPanel = new JPanel();
+        pacPanel.setPreferredSize(new Dimension(15,15));
+        new Pacman(pacPanel);
+        mapPanel.add(pacPanel);
+
+        frame.pack();
         frame.setVisible(true);
 
     }
 
     private void createStatusBar(){
         statusBar = new JPanel();
-        statusBar.setPreferredSize(new Dimension(572, 30));
+        statusBar.setPreferredSize(new Dimension(420, 50));
         statusBar.setBackground(Color.black);
     }
 
     private void drawBoardBackground() throws IOException {
         mapPanel = new JPanel(){
-            BufferedImage mapImg = ImageIO.read(new File("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\pacmanAssets_resizefor15.png"));
+            BufferedImage mapImg = ImageIO.read(new File("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\pacmanAssets_resizefor15.png"));
 
             public void paint (Graphics g){
                 super.paint(g);
@@ -86,6 +94,12 @@ public class MainWindow{
                     {
                         BufferedImage img = mapImg.getSubimage(i * 15, j * 15, 15, 15);
                         g.drawImage(img, i * 15, j * 15, null);
+//                        g.setColor(Color.white);
+//                        if (board[j][i] == F)
+//                        {
+//                            g.setColor(Color.yellow);
+//                            g.fillRect(i * 15, j * 15, 15, 15);
+//                        }
                     }
                 }
 
