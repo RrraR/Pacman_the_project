@@ -9,31 +9,41 @@ import java.util.TimerTask;
 public class Animate extends TimerTask {
 
     private JPanel test;
-    private Image pacman1;
-    private Image pacman2;
-    private Image pacman3;
+    private Image pacman1;//= ImageIO.read(new File("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\pacman_right_1.png"));;
+    private Image pacman2;// = ImageIO.read(new File("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\pacman_right_2.png"));
+    private Image pacman3;// = ImageIO.read(new File("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\pacman_whole.png"));
 
     public Animate(JPanel pacPanel) throws IOException {
         test = pacPanel;
-        pacman1 = ImageIO.read(new File("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\pacman_right_1.png"));
-        pacman2 = ImageIO.read(new File("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\pacman_right_2.png"));
-        pacman3 = ImageIO.read(new File("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\pacman_whole.png"));
-        run();
     }
 
     @Override
     public void run() {
+
         int now = LocalDateTime.now().getSecond();
-        new JLabel();
-        JLabel picLabel;
-        if (now < 20){
-            picLabel = new JLabel(new ImageIcon(pacman1));
-        } else if (20 < now && now < 40) {
-            picLabel = new JLabel(new ImageIcon(pacman2));
-        } else {
-            picLabel = new JLabel(new ImageIcon(pacman3));
+        System.out.println("animate "  + now);
+        try {
+            pacman1 = ImageIO.read(new File("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\pacman_right_1.png"));
+            pacman2 = ImageIO.read(new File("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\pacman_right_2.png"));
+            pacman3 = ImageIO.read(new File("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\pacman_whole.png"));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
-        test.add(picLabel);
+
+        if (now < 20){
+            test.removeAll();
+            test.revalidate();
+            test.add(new JLabel(new ImageIcon(pacman1)));
+        } else if (20 < now && now < 40) {
+            test.removeAll();
+            test.revalidate();
+            test.add(new JLabel(new ImageIcon(pacman2)));
+        } else {
+            test.removeAll();
+            test.revalidate();
+            test.add(new JLabel(new ImageIcon(pacman3)));
+        }
+
     }
 
 }

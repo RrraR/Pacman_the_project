@@ -1,6 +1,8 @@
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -50,10 +52,8 @@ public class MainWindow{
     };
 
     MainWindow() throws IOException {
-        //extra height 35
-        //extra width 12
         frame = new JFrame("Main Window Test");
-//        frame.setSize(432, 529);
+        frame.setSize(432, 529);
 
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setLayout(new BorderLayout());
@@ -63,15 +63,12 @@ public class MainWindow{
         frame.getContentPane().add(statusBar, BorderLayout.NORTH);
 
         drawBoardBackground();
-        mapPanel.setPreferredSize(new Dimension(420, 465));
         frame.getContentPane().add(mapPanel);
 
-        JPanel pacPanel = new JPanel();
-        pacPanel.setPreferredSize(new Dimension(15,15));
-        new Pacman(pacPanel);
-        mapPanel.add(pacPanel);
+        mapPanel.add(new Pacman());
+//        pacPanel.setPreferredSize(new Dimension(30,30));
 
-        frame.pack();
+//        frame.pack();
         frame.setVisible(true);
 
     }
@@ -94,6 +91,7 @@ public class MainWindow{
                     {
                         BufferedImage img = mapImg.getSubimage(i * 15, j * 15, 15, 15);
                         g.drawImage(img, i * 15, j * 15, null);
+
 //                        g.setColor(Color.white);
 //                        if (board[j][i] == F)
 //                        {
@@ -105,6 +103,7 @@ public class MainWindow{
 
             }
         };
+        mapPanel.setPreferredSize(new Dimension(420, 465));
     }
 
 }
