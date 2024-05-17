@@ -23,7 +23,9 @@ public class MainWindow{
         createStatusBar();
         frame.getContentPane().add(statusBar, BorderLayout.NORTH);
 
-        frame.getContentPane().add(new GameBoard());
+        GameBoard gameBoard = new GameBoard();
+        frame.addKeyListener(gameBoard);
+        frame.getContentPane().add(gameBoard);
 
         frame.pack();
         frame.setVisible(true);
