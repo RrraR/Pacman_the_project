@@ -56,12 +56,33 @@ public class GameBoard extends JPanel implements KeyListener {
     private int currentSpeedY = 0; // Change in y-coordinate per frame
     private int initSpeedX = 3;
     private int initSpeedY = 3;
+    private Image[] pacmanImagesRight;
+    private Image[] pacmanImagesLeft;
+    private Image[] pacmanImagesUp;
+    private Image[] pacmanImagesDown;
+    private int currentImageIndex;
+    private int currentOrientation;
 
     BufferedImage mapImg = ImageIO.read(new File("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\pacmanAssets_resizefor15.png"));
-    BufferedImage pacmanImg = ImageIO.read(new File("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\mspacman-right-open_resizefor15.png"));
 
     GameBoard() throws IOException {
         setPreferredSize(new Dimension(420, 465));
+        currentImageIndex = 0;
+        currentOrientation = 1;
+        loadImages();
+    }
+
+    private void loadImages(){
+        pacmanImagesRight = new Image[3];
+        pacmanImagesLeft = new Image[3];
+        pacmanImagesUp = new Image[3];
+        pacmanImagesDown = new Image[3];
+        for (int i = 0; i < 3; i++) {
+            pacmanImagesRight[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\pacman\\mspacman-right_" + i + ".png").getImage();
+            pacmanImagesLeft[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\pacman\\mspacman-left_" + i + ".png").getImage();
+            pacmanImagesUp[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\pacman\\mspacman-up_" + i + ".png").getImage();
+            pacmanImagesDown[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\pacman\\mspacman-down_" + i + ".png").getImage();
+        }
     }
 
     @Override
@@ -77,7 +98,20 @@ public class GameBoard extends JPanel implements KeyListener {
             }
         }
 
-        g.drawImage(pacmanImg, panelX, panelY, null);
+        switch (currentOrientation){
+            case 0:
+                g.drawImage(pacmanImagesUp[currentImageIndex], panelX, panelY, null);
+                break;
+            case 1:
+                g.drawImage(pacmanImagesRight[currentImageIndex], panelX, panelY, null);
+                break;
+            case 2:
+                g.drawImage(pacmanImagesDown[currentImageIndex], panelX, panelY, null);
+                break;
+            case 3:
+                g.drawImage(pacmanImagesLeft[currentImageIndex], panelX, panelY, null);
+                break;
+        }
 
     }
 
@@ -85,6 +119,7 @@ public class GameBoard extends JPanel implements KeyListener {
         timer = new Timer(20, new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                currentImageIndex = (currentImageIndex + 1) % 3;
                 movePacman();
                 repaint();
             }
@@ -98,11 +133,16 @@ public class GameBoard extends JPanel implements KeyListener {
         panelX += currentSpeedX;
         panelY += currentSpeedY;
 
-        if (panelX <= 0 || panelX >= getWidth() - 15) {
-            currentSpeedX = -currentSpeedX;
+        if (panelX <= 0){
+            panelX = getWidth() - 20;
+        } else if (panelX >= getWidth() - 15) {
+            panelX = 0;
         }
-        if (panelY <= 0 || panelY >= getHeight() - 15) {
-            currentSpeedY = -currentSpeedY;
+
+        if (panelY <= 0){
+            panelY = getHeight() - 20;
+        } else if (panelY >= getHeight() - 15) {
+            panelY = 0;
         }
     }
 
@@ -115,18 +155,22 @@ public class GameBoard extends JPanel implements KeyListener {
             if (key == KeyEvent.VK_W) {
                 currentSpeedY = -initSpeedY;
                 currentSpeedX = 0;
+                currentOrientation = 0;
             }
             if (key == KeyEvent.VK_A) {
                 currentSpeedX = -initSpeedX;
                 currentSpeedY = 0;
+                currentOrientation = 3;
             }
             if (key == KeyEvent.VK_D) {
                 currentSpeedY = 0;
                 currentSpeedX = initSpeedX;
+                currentOrientation = 1;
             }
             if (key == KeyEvent.VK_S) {
                 currentSpeedX = 0;
                 currentSpeedY = initSpeedY;
+                currentOrientation = 2;
             }
 
         }
