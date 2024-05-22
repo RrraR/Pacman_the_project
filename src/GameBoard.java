@@ -53,7 +53,7 @@ public class GameBoard extends JPanel implements KeyListener {
     private static int board[][] = {
         //-----------------------X---H-------------------------//
         //r23
-        //c24
+        //c24                  r
         {W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W},
         {W,F,F,F,F,F,F,F,F,F,F,W,F,F,F,F,F,F,F,F,F,F,W},
         {W,F,W,W,W,F,W,W,W,W,F,W,F,W,W,W,W,F,W,W,W,F,W},
@@ -68,7 +68,7 @@ public class GameBoard extends JPanel implements KeyListener {
         {F,F,F,F,F,F,F,F,W,E,E,E,E,E,W,F,F,F,F,F,F,F,F},
         {W,W,W,W,W,F,W,F,W,E,E,E,E,E,W,F,W,F,W,W,W,W,W},
         {E,E,E,E,W,F,W,F,W,W,W,W,W,W,W,F,W,F,W,E,E,E,E},
-        {E,E,E,E,W,F,W,F,F,F,F,F,F,F,F,F,W,F,W,E,E,E,E},
+        {E,E,E,E,W,F,W,F,F,F,F,F,F,F,F,F,W,F,W,E,E,E,E},//r14
         {W,W,W,W,W,F,W,F,W,W,W,W,W,W,W,F,W,F,W,W,W,W,W},
         {W,F,F,F,F,F,F,F,F,F,F,W,F,F,F,F,F,F,F,F,F,F,W},
         {W,F,W,W,W,F,W,W,W,W,F,W,F,W,W,W,W,F,W,W,W,F,W},
@@ -81,8 +81,8 @@ public class GameBoard extends JPanel implements KeyListener {
     };
 
     Boolean inGame = false;
-    private int panelX = 210;
-    private int panelY = 253;
+    private int panelX = 209;
+    private int panelY = 269;
     private int currentSpeedX = 0; // Change in x-coordinate per frame
     private int currentSpeedY = 0; // Change in y-coordinate per frame
     private int initSpeedX = 2;
@@ -97,7 +97,7 @@ public class GameBoard extends JPanel implements KeyListener {
     BufferedImage mapImg = ImageIO.read(new File("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\pacmanAssets_resizefor10.png"));
 
     GameBoard() throws IOException {
-        setPreferredSize(new Dimension(416, 435));
+        setPreferredSize(new Dimension(438, 457));
         setBackground(Color.BLACK);
         currentImageIndex = 0;
         currentOrientation = 1;
@@ -121,28 +121,44 @@ public class GameBoard extends JPanel implements KeyListener {
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
 
-        for (int i = 0; i < board[0].length; i++)
+        for (int i = 0; i < board.length; i++)
         {
-            for (int j = 0; j < board.length; j++)
+            for (int j = 0; j < board[0].length; j++)
             {
 //                if (board[j][i] == C){
 //                    g.setColor(Color.blue);
 //                    g.drawRoundRect(i * 18, j * 18, 18, 18, 4, 4);
 //                }
 //                else
-                    if (board[j][i] == W)
+                    if (board[i][j] == W)
                 {
                     g.setColor(Color.blue);
-                    g.drawRect(i * 18,j * 18, 18, 18);
+                    g.drawRect(j * 19,i * 19, 19, 19);
                 }
-                else if (board[j][i] == F)
+//                else if (board[i][j] == F)
+//                {
+//                    g.setColor(Color.black);
+//                    g.fillRect(j * 19,i * 19, 19, 19);}
+//                else if (board[i][j] == E) {
+//                    g.setColor(Color.black);
+//                    g.fillRect(j * 19,i * 19, 19, 19);
+//                }
+
+//                BufferedImage img = mapImg.getSubimage(i * 15, j * 15, 15, 15);
+//                g.drawImage(img, i * 15, j * 15, null);
+            }
+        }
+
+        for (int i = 0; i < board.length; i++)
+        {
+            for (int j = 0; j < board[0].length; j++)
+            {
+                if (board[i][j] == F || board[i][j] == E)
                 {
                     g.setColor(Color.black);
-                    g.fillRect(i * 18,j * 18, 18, 18);
-                } else if (board[j][i] == E) {
-                    g.setColor(Color.black);
-                    g.fillRect(i * 18,j * 18, 18, 18);
+                    g.fillRect(j * 19,i * 19, 19, 19);
                 }
+
 
 //                BufferedImage img = mapImg.getSubimage(i * 15, j * 15, 15, 15);
 //                g.drawImage(img, i * 15, j * 15, null);
@@ -169,7 +185,7 @@ public class GameBoard extends JPanel implements KeyListener {
     }
 
     private void startAnimation() {
-        Timer timer = new Timer(40, new ActionListener() {
+        Timer timer = new Timer(20, new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 currentImageIndex = (currentImageIndex + 1) % 3;
@@ -186,24 +202,22 @@ public class GameBoard extends JPanel implements KeyListener {
     private boolean checkCollision(){
 //        System.out.println(" panel:" + board[panelY/18][panelX/18] + ", row: " + panelY/18 + " cord y: " + panelY+ ", col: " + panelX/18 +  " cord x: " + panelX );
 
-        if (currentOrientation == 0 && board[(panelY + 13)/18 - 1][panelX/18] == W){
-            currentSpeedY = 0;
-            currentSpeedX = 0;
-            System.out.println("go up row: panel:" + board[panelY/18][panelX/18] + ", row: " + panelY/18 + " cord y: " + panelY+ ", col: " + panelX/18 +  " cord x: " + panelX );
-            return true;
-        }
-        if (currentOrientation == 1 && board[panelY/18][(panelX - 2)/18 + 1] == W) {
+        if (currentOrientation == 0 && board[(panelY + 13)/19 - 1][panelX/19] == W){
             currentSpeedY = 0;
             currentSpeedX = 0;
             return true;
         }
-        if (currentOrientation == 2 && board[(panelY - 2)/18 + 1][panelX/18] == W) {
+        if (currentOrientation == 1 && board[panelY/19][(panelX - 2)/19 + 1] == W) {
             currentSpeedY = 0;
             currentSpeedX = 0;
             return true;
         }
-        if (currentOrientation == 3 && board[panelY / 18][(panelX + 14)/ 18 - 1] == W){
-            System.out.println("go left row: " + panelY/18 + " cord y: " + panelY + ", col: " + panelX/18 + " cord x: " + panelX);
+        if (currentOrientation == 2 && board[(panelY - 2)/19 + 1][panelX/19] == W) {
+            currentSpeedY = 0;
+            currentSpeedX = 0;
+            return true;
+        }
+        if (currentOrientation == 3 && board[panelY / 19][(panelX + 13)/ 19 - 1] == W){
             currentSpeedY = 0;
             currentSpeedX = 0;
             return true;
@@ -212,27 +226,49 @@ public class GameBoard extends JPanel implements KeyListener {
         return false;
     }
 
+    private void recenterPacman() {
+        // Recenter horizontally
+        if (currentOrientation == 0 || currentOrientation == 2) {
+            int columnWidth = 19;
+            int offsetX = (panelX % columnWidth < columnWidth / 2) ? -(panelX % columnWidth) : (columnWidth - panelX % columnWidth);
+            panelX += offsetX + 3;
+        }
+
+        // Recenter vertically
+        if (currentOrientation == 1 || currentOrientation == 3) {
+            int rowHeight = 19;
+            int offsetY = (panelY % rowHeight < rowHeight / 2) ? -(panelY % rowHeight) : (rowHeight - panelY % rowHeight);
+            panelY += offsetY + 3;
+        }
+    }
+
     private void movePacman() {
 
-        if (panelX - 13 > 0 && panelX < 415 && panelX/18 < 22 && checkCollision()){
+        if (panelX - 13 > 0 && panelX < 456 && panelX/19 < 22 && checkCollision()){
             return;
         }
 
         panelX += currentSpeedX;
         panelY += currentSpeedY;
 
+        //TODO:
+        // if we are moving horizontally and there is no turn possible we should only be able to go left or right and no up and down
+        // same for up/down
+
         //wall passing
         if (panelX <= 0){
             panelX = getWidth() - 20;
-        } else if (panelX >= getWidth() - 18) {
+        } else if (panelX >= getWidth() - 19) {
             panelX = 0;
         }
 
         if (panelY <= 0){
             panelY = getHeight() - 20;
-        } else if (panelY >= getHeight() - 18) {
+        } else if (panelY >= getHeight() - 19) {
             panelY = 0;
         }
+
+        recenterPacman();
     }
 
     @Override
