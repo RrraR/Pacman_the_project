@@ -34,7 +34,7 @@ public class MainWindow{
 
     private void createStatusBar(){
         statusBar = new JPanel();
-        statusBar.setPreferredSize(new Dimension(420, 50));
+        statusBar.setPreferredSize(new Dimension(100, 50));
         statusBar.setBackground(Color.black);
     }
 
