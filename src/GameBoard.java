@@ -1,12 +1,9 @@
-import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
-import java.awt.image.BufferedImage;
-import java.io.File;
 import java.io.IOException;
 
 public class GameBoard extends JPanel implements KeyListener {
@@ -44,6 +41,7 @@ public class GameBoard extends JPanel implements KeyListener {
         {W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W}
     };
 
+    private final int boardDimensions = 19;
     Boolean inGame = false;
     private int panelX = 209;
     private int panelY = 269;
@@ -90,7 +88,7 @@ public class GameBoard extends JPanel implements KeyListener {
                 if (board[i][j] == W)
                 {
                     g.setColor(Color.blue);
-                    g.drawRect(j * 19,i * 19, 19, 19);
+                    g.drawRect(j * boardDimensions,i * boardDimensions, boardDimensions, boardDimensions);
                 }
             }
         }
@@ -102,7 +100,7 @@ public class GameBoard extends JPanel implements KeyListener {
                 if (board[i][j] == F || board[i][j] == E)
                 {
                     g.setColor(Color.black);
-                    g.fillRect(j * 19,i * 19, 19, 19);
+                    g.fillRect(j * boardDimensions,i * boardDimensions, boardDimensions, boardDimensions);
                 }
             }
         }
@@ -144,22 +142,22 @@ public class GameBoard extends JPanel implements KeyListener {
     private boolean checkCollision(){
 //        System.out.println(" panel:" + board[panelY/18][panelX/18] + ", row: " + panelY/18 + " cord y: " + panelY+ ", col: " + panelX/18 +  " cord x: " + panelX );
 
-        if (currentOrientation == 0 && board[(panelY + 13)/19 - 1][panelX/19] == W){
+        if (currentOrientation == 0 && board[(panelY + 13)/boardDimensions - 1][panelX/boardDimensions] == W){
             currentSpeedY = 0;
             currentSpeedX = 0;
             return true;
         }
-        if (currentOrientation == 1 && board[panelY/19][(panelX - 2)/19 + 1] == W) {
+        if (currentOrientation == 1 && board[panelY/boardDimensions][(panelX - 2)/boardDimensions + 1] == W) {
             currentSpeedY = 0;
             currentSpeedX = 0;
             return true;
         }
-        if (currentOrientation == 2 && board[(panelY - 2)/19 + 1][panelX/19] == W) {
+        if (currentOrientation == 2 && board[(panelY - 2)/boardDimensions + 1][panelX/boardDimensions] == W) {
             currentSpeedY = 0;
             currentSpeedX = 0;
             return true;
         }
-        if (currentOrientation == 3 && board[panelY / 19][(panelX + 13)/ 19 - 1] == W){
+        if (currentOrientation == 3 && board[panelY / boardDimensions][(panelX + 13)/ boardDimensions - 1] == W){
             currentSpeedY = 0;
             currentSpeedX = 0;
             return true;
@@ -169,24 +167,22 @@ public class GameBoard extends JPanel implements KeyListener {
     }
 
     private void recenterPacman() {
-        // Recenter horizontally
+        // recenter horizontally
         if (currentOrientation == 0 || currentOrientation == 2) {
-            int columnWidth = 19;
-            int offsetX = (panelX % columnWidth < columnWidth / 2) ? -(panelX % columnWidth) : (columnWidth - panelX % columnWidth);
+            int offsetX = (panelX % boardDimensions < boardDimensions / 2) ? -(panelX % boardDimensions) : (boardDimensions - panelX % boardDimensions);
             panelX += offsetX + 3;
         }
 
-        // Recenter vertically
+        // recenter vertically
         if (currentOrientation == 1 || currentOrientation == 3) {
-            int rowHeight = 19;
-            int offsetY = (panelY % rowHeight < rowHeight / 2) ? -(panelY % rowHeight) : (rowHeight - panelY % rowHeight);
+            int offsetY = (panelY % boardDimensions < boardDimensions / 2) ? -(panelY % boardDimensions) : (boardDimensions - panelY % boardDimensions);
             panelY += offsetY + 3;
         }
     }
 
     private void movePacman() {
 
-        if (panelX - 13 > 0 && panelX < 456 && panelX/19 < 22 && checkCollision()){
+        if (panelX - 13 > 0 && panelX < 456 && panelX/boardDimensions < 22 && checkCollision()){
             return;
         }
 
@@ -200,13 +196,13 @@ public class GameBoard extends JPanel implements KeyListener {
         //wall passing
         if (panelX <= 0){
             panelX = getWidth() - 20;
-        } else if (panelX >= getWidth() - 19) {
+        } else if (panelX >= getWidth() - boardDimensions) {
             panelX = 0;
         }
 
         if (panelY <= 0){
             panelY = getHeight() - 20;
-        } else if (panelY >= getHeight() - 19) {
+        } else if (panelY >= getHeight() - boardDimensions) {
             panelY = 0;
         }
 
@@ -219,22 +215,22 @@ public class GameBoard extends JPanel implements KeyListener {
         int key = e.getKeyCode();
 
         if (inGame) {
-            if (key == KeyEvent.VK_W || key == KeyEvent.VK_UP) {
+            if ((key == KeyEvent.VK_W || key == KeyEvent.VK_UP) && board[panelY/boardDimensions - 1][panelX/boardDimensions] != W) {
                 currentSpeedY = -initSpeedY;
                 currentSpeedX = 0;
                 currentOrientation = 0;
             }
-            if (key == KeyEvent.VK_D || key == KeyEvent.VK_RIGHT) {
+            if ((key == KeyEvent.VK_D || key == KeyEvent.VK_RIGHT) && board[panelY/boardDimensions][(panelX)/boardDimensions + 1] != W) {
                 currentSpeedY = 0;
                 currentSpeedX = initSpeedX;
                 currentOrientation = 1;
             }
-            if (key == KeyEvent.VK_S || key == KeyEvent.VK_DOWN) {
+            if ((key == KeyEvent.VK_S || key == KeyEvent.VK_DOWN) && board[panelY/boardDimensions + 1][panelX/boardDimensions] != W) {
                 currentSpeedX = 0;
                 currentSpeedY = initSpeedY;
                 currentOrientation = 2;
             }
-            if (key == KeyEvent.VK_A || key == KeyEvent.VK_LEFT) {
+            if ((key == KeyEvent.VK_A || key == KeyEvent.VK_LEFT) && board[panelY / boardDimensions][(panelX + 13)/ boardDimensions - 1] != W) {
                 currentSpeedX = -initSpeedX;
                 currentSpeedY = 0;
                 currentOrientation = 3;
