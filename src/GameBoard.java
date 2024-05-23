@@ -13,42 +13,6 @@ public class GameBoard extends JPanel implements KeyListener {
     final static int W=1; // Wall.
     final static int F=2; // Crossroads with food
     final static int E=3; // Empty crossroads
-    final static int C=4; // Corner crossroads
-
-//    private static int board[][] = {
-//            //-----------------------X---H-------------------------//
-//            {W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W},
-//            {W,F,F,F,F,F,F,F,F,F,F,F,F,W,W,F,F,F,F,F,F,F,F,F,F,F,F,W},
-//            {W,F,C,W,W,C,F,C,W,W,W,C,F,W,W,F,C,W,W,W,C,F,C,W,W,C,F,W},
-//            {W,F,W,E,E,W,F,W,E,E,E,W,F,W,W,F,W,E,E,E,W,F,W,E,E,W,F,W},
-//            {W,F,C,W,W,C,F,C,W,W,W,C,F,C,C,F,C,W,W,W,C,F,C,W,W,C,F,W},
-//            {W,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,W},
-//            {W,F,W,W,W,W,F,W,W,F,W,W,W,W,W,W,W,W,F,W,W,F,W,W,W,W,F,W},
-//            {W,F,W,W,W,W,F,W,W,F,W,W,W,W,W,W,W,W,F,W,W,F,W,W,W,W,F,W},
-//            {W,F,F,F,F,F,F,W,W,F,F,F,F,W,W,F,F,F,F,W,W,F,F,F,F,F,F,W},
-//            {W,W,W,W,W,W,F,W,W,W,W,W,F,W,W,F,W,W,W,W,W,F,W,W,W,W,W,W},
-//            {E,E,E,E,E,W,F,W,W,W,W,W,F,W,W,F,W,W,W,W,W,F,W,E,E,E,E,E},
-//            {E,E,E,E,E,W,F,W,W,F,F,F,F,F,F,F,F,F,F,W,W,F,W,E,E,E,E,E},
-//            {E,E,E,E,E,W,F,W,W,F,W,W,W,W,W,W,W,W,F,W,W,F,W,E,E,E,E,E},
-//            {W,W,W,W,W,W,F,W,W,F,W,E,E,E,E,E,E,W,F,W,W,F,W,W,W,W,W,W},
-//            {F,F,F,F,F,F,F,F,F,F,W,E,E,E,E,E,E,W,F,F,F,F,F,F,F,F,F,F},
-//            {W,W,W,W,W,W,F,W,W,F,W,E,E,E,E,E,E,W,F,W,W,F,W,W,W,W,W,W},
-//            {E,E,E,E,E,W,F,W,W,F,W,W,W,W,W,W,W,W,F,W,W,F,W,E,E,E,E,E},
-//            {E,E,E,E,E,W,F,W,W,F,F,F,F,F,F,F,F,F,F,W,W,F,W,E,E,E,E,E},//r17
-//            {E,E,E,E,E,W,F,W,W,F,W,W,W,W,W,W,W,W,F,W,W,F,W,E,E,E,E,E},
-//            {W,W,W,W,W,W,F,W,W,F,W,W,W,W,W,W,W,W,F,W,W,F,W,W,W,W,W,W},
-//            {W,F,F,F,F,F,F,F,F,F,F,F,F,W,W,F,F,F,F,F,F,F,F,F,F,F,F,W},
-//            {W,F,W,W,W,W,F,W,W,W,W,W,F,W,W,F,W,W,W,W,W,F,W,W,W,W,F,W},
-//            {W,F,W,W,W,W,F,W,W,W,W,W,F,W,W,F,W,W,W,W,W,F,W,W,W,W,F,W},
-//            {W,F,F,F,W,W,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,W,W,F,F,F,W},
-//            {W,W,W,F,W,W,F,W,W,F,W,W,W,W,W,W,W,W,F,W,W,F,W,W,F,W,W,W},
-//            {W,W,W,F,W,W,F,W,W,F,W,W,W,W,W,W,W,W,F,W,W,F,W,W,F,W,W,W},
-//            {W,F,F,F,F,F,F,W,W,F,F,F,F,W,W,F,F,F,F,W,W,F,F,F,F,F,F,W},
-//            {W,F,W,W,W,W,W,W,W,W,W,W,F,W,W,F,W,W,W,W,W,W,W,W,W,W,F,W},
-//            {W,F,W,W,W,W,W,W,W,W,W,W,F,W,W,F,W,W,W,W,W,W,W,W,W,W,F,W},
-//            {W,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,W},
-//            {W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W}
-//    };
 
     private static int board[][] = {
         //-----------------------X---H-------------------------//
@@ -94,8 +58,6 @@ public class GameBoard extends JPanel implements KeyListener {
     private int currentImageIndex;
     private int currentOrientation;
 
-    BufferedImage mapImg = ImageIO.read(new File("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\pacmanAssets_resizefor10.png"));
-
     GameBoard() throws IOException {
         setPreferredSize(new Dimension(438, 457));
         setBackground(Color.BLACK);
@@ -125,27 +87,11 @@ public class GameBoard extends JPanel implements KeyListener {
         {
             for (int j = 0; j < board[0].length; j++)
             {
-//                if (board[j][i] == C){
-//                    g.setColor(Color.blue);
-//                    g.drawRoundRect(i * 18, j * 18, 18, 18, 4, 4);
-//                }
-//                else
-                    if (board[i][j] == W)
+                if (board[i][j] == W)
                 {
                     g.setColor(Color.blue);
                     g.drawRect(j * 19,i * 19, 19, 19);
                 }
-//                else if (board[i][j] == F)
-//                {
-//                    g.setColor(Color.black);
-//                    g.fillRect(j * 19,i * 19, 19, 19);}
-//                else if (board[i][j] == E) {
-//                    g.setColor(Color.black);
-//                    g.fillRect(j * 19,i * 19, 19, 19);
-//                }
-
-//                BufferedImage img = mapImg.getSubimage(i * 15, j * 15, 15, 15);
-//                g.drawImage(img, i * 15, j * 15, null);
             }
         }
 
@@ -158,10 +104,6 @@ public class GameBoard extends JPanel implements KeyListener {
                     g.setColor(Color.black);
                     g.fillRect(j * 19,i * 19, 19, 19);
                 }
-
-
-//                BufferedImage img = mapImg.getSubimage(i * 15, j * 15, 15, 15);
-//                g.drawImage(img, i * 15, j * 15, null);
             }
         }
 
