@@ -1,19 +1,13 @@
-import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
 
 public class MainWindow{
 
     public JFrame frame;
     private JPanel statusBar;
 
-    MainWindow() throws IOException {
-        frame = new JFrame("Main Window Test");
+    MainWindow(){
+        frame = new JFrame("pacman");
 //        frame.setSize(432, 529);
 
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
