@@ -14,12 +14,12 @@ public class OrangeGhost {
     }
 
     private void loadImages(){
-        orangeGhostImagesRight = new Image[3];
-        orangeGhostImagesLeft = new Image[3];
-        orangeGhostImagesUp = new Image[3];
-        orangeGhostImagesDown = new Image[3];
+        orangeGhostImagesRight = new Image[2];
+        orangeGhostImagesLeft = new Image[2];
+        orangeGhostImagesUp = new Image[2];
+        orangeGhostImagesDown = new Image[2];
 
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 2; i++) {
             orangeGhostImagesRight[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\sue\\sue-right-" + i + ".png").getImage();
             orangeGhostImagesLeft[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\sue\\sue-left-" + i + ".png").getImage();
             orangeGhostImagesUp[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\sue\\sue-up-" + i + ".png").getImage();

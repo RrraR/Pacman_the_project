@@ -5,6 +5,7 @@ import java.awt.*;
 
 public class Pacman {
 
+    //TODO: fix the usage of W here
     final static int W=1; // Wall.
     final static int F=2; // Crossroads with food
     final static int E=3; // Empty crossroads
@@ -13,10 +14,10 @@ public class Pacman {
 
     public int panelX = 209;
     public int panelY = 269;
-    private int currentSpeedX = 2; // Change in x-coordinate per frame
+    private int currentSpeedX = 3; // Change in x-coordinate per frame
     private int currentSpeedY = 0; // Change in y-coordinate per frame
-    private final int initSpeedX = 2;
-    private final int initSpeedY = 2;
+    private final int initSpeedX = 3;
+    private final int initSpeedY = 3;
     private int currentPacmanImageIndex;
     private int currentPacmanOrientation;
     private Image[] pacmanImagesRight;
@@ -80,16 +81,12 @@ public class Pacman {
 
     public void movePacman() {
 
-        if (panelX - 13 > 0 && panelX < board.length * 19 && panelX/ boardDimensions < 22 && checkCollision()){
+        if (panelX - 13 > 0 && panelX < board.length * 19 && panelX / boardDimensions < 22 && checkCollision()){
             return;
         }
 
         panelX += currentSpeedX;
         panelY += currentSpeedY;
-
-        //TODO:
-        // if we are moving horizontally and there is no turn possible we should only be able to go left or right and no up and down
-        // same for up/down
 
         //wall passing
         if (panelX <= 0){
@@ -118,6 +115,7 @@ public class Pacman {
     private boolean checkCollision(){
 //        System.out.println(" panel:" + board[panelY/18][panelX/18] + ", row: " + panelY/18 + " cord y: " + panelY+ ", col: " + panelX/18 +  " cord x: " + panelX );
 
+        // TODO: refactor orientations for all characters to be enum like Direction.LEFT
         if (currentPacmanOrientation == 0 && board[(panelY + 13)/ boardDimensions - 1][panelX/ boardDimensions] == W){
             currentSpeedY = 0;
             currentSpeedX = 0;

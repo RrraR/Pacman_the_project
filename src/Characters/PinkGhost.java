@@ -15,12 +15,12 @@ public class PinkGhost {
     }
 
     private void loadImages(){
-        pinkGhostImagesRight = new Image[3];
-        pinkGhostImagesLeft = new Image[3];
-        pinkGhostImagesUp = new Image[3];
-        pinkGhostImagesDown = new Image[3];
+        pinkGhostImagesRight = new Image[2];
+        pinkGhostImagesLeft = new Image[2];
+        pinkGhostImagesUp = new Image[2];
+        pinkGhostImagesDown = new Image[2];
 
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 2; i++) {
             pinkGhostImagesRight[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\pinky\\pinky-right-" + i + ".png").getImage();
             pinkGhostImagesLeft[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\pinky\\pinky-left-" + i + ".png").getImage();
             pinkGhostImagesUp[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\pinky\\pinky-up-" + i + ".png").getImage();

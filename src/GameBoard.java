@@ -1,4 +1,6 @@
+import Characters.BlueGhost;
 import Characters.Pacman;
+import Characters.RedGhost;
 
 import javax.swing.*;
 import java.awt.*;
@@ -45,11 +47,15 @@ public class GameBoard extends JPanel implements KeyListener {
     private final int boardDimensions = 19;
     Boolean inGame = false;
     Pacman pacman;
+    RedGhost redGhost;
+    BlueGhost blueGhost;
 
     GameBoard(){
         setPreferredSize(new Dimension(438, 457));
         setBackground(Color.BLACK);
         pacman = new Pacman(boardDimensions, board);
+        redGhost = new RedGhost(boardDimensions, board);
+        blueGhost = new BlueGhost(boardDimensions, board);
         startAnimation();
     }
 
@@ -82,6 +88,8 @@ public class GameBoard extends JPanel implements KeyListener {
         }
 
         pacman.drawPacman(g);
+        redGhost.drawRedGhost(g);
+        blueGhost.drawBlueGhost(g);
 
 //        System.out.println("x cord: " + panelX + ", y cord: " + panelY);
 //        System.out.println("cord x: " + panelX + ", cord y: " + panelY + ", col: " + panelX / 15 + ", row: " + panelY / 15 + ", square: " + board[panelY/15][panelX/15]);
@@ -90,11 +98,11 @@ public class GameBoard extends JPanel implements KeyListener {
 
     private void startAnimation() {
         inGame = true;
-        Timer timer = new Timer(20, new ActionListener() {
+        Timer timer = new Timer(30, new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                pacman.updateImageIndex();
-                pacman.movePacman();
+                updateCharacterImageIndex();
+                moveCharters();
                 repaint();
             }
         });
@@ -102,6 +110,17 @@ public class GameBoard extends JPanel implements KeyListener {
         timer.start();
     }
 
+    private void moveCharters(){
+        pacman.movePacman();
+        redGhost.moveRedGhost(pacman.panelX, pacman.panelY);
+//        blueGhost.moveBlueGhost();
+    }
+
+    private void updateCharacterImageIndex(){
+        pacman.updateImageIndex();
+        redGhost.updateImageIndex();
+        blueGhost.updateImageIndex();
+    }
 
     @Override
     public void keyPressed(KeyEvent e) {
