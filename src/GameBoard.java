@@ -1,6 +1,4 @@
-import Characters.BlueGhost;
-import Characters.Pacman;
-import Characters.RedGhost;
+import Characters.*;
 
 import javax.swing.*;
 import java.awt.*;
@@ -9,13 +7,16 @@ import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 
-public class GameBoard extends JPanel implements KeyListener {
+public class GameBoard extends JPanel implements KeyListener, Runnable {
     final static int W=1; // Wall.
     final static int F=2; // Crossroads with food
     final static int E=3; // Empty crossroads
+    final static int D=4; // Door crossroads
 
     private static int board[][] = {
         //-----------------------X---H-------------------------//
+        //board.length - cols
+        //board[0].length - rows
         //r23
         //c24                  r
         {W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W},
@@ -27,7 +28,7 @@ public class GameBoard extends JPanel implements KeyListener {
         {W,F,F,F,F,F,W,F,F,F,F,W,F,F,F,F,W,F,F,F,F,F,W},
         {W,W,W,W,W,F,W,W,W,W,F,W,F,W,W,W,W,F,W,W,W,W,W},
         {E,E,E,E,W,F,W,F,F,F,F,F,F,F,F,F,W,F,W,E,E,E,E},
-        {E,E,E,E,W,F,W,F,W,W,W,W,W,W,W,F,W,F,W,E,E,E,E},
+        {E,E,E,E,W,F,W,F,W,W,W,D,W,W,W,F,W,F,W,E,E,E,E},
         {W,W,W,W,W,F,W,F,W,E,E,E,E,E,W,F,W,F,W,W,W,W,W},
         {F,F,F,F,F,F,F,F,W,E,E,E,E,E,W,F,F,F,F,F,F,F,F},
         {W,W,W,W,W,F,W,F,W,E,E,E,E,E,W,F,W,F,W,W,W,W,W},
@@ -45,18 +46,31 @@ public class GameBoard extends JPanel implements KeyListener {
     };
 
     private final int boardDimensions = 19;
-    Boolean inGame = false;
-    Pacman pacman;
-    RedGhost redGhost;
-    BlueGhost blueGhost;
+    public Boolean inGame = false;
+    private Pacman pacman;
+    private RedGhost redGhost;
+    private PinkGhost pinkGhost;
+    private BlueGhost blueGhost;
+    private OrangeGhost orangeGhost;
+    private Thread pacmanThread;
+    private Thread redGhostThread;
+    private Thread pinkGhostThread;
+    private Thread blueGhostThread;
+    private Thread orangeGhostThread;
 
     GameBoard(){
         setPreferredSize(new Dimension(438, 457));
         setBackground(Color.BLACK);
-        pacman = new Pacman(boardDimensions, board);
-        redGhost = new RedGhost(boardDimensions, board);
-        blueGhost = new BlueGhost(boardDimensions, board);
-        startAnimation();
+        pacman = new Pacman(boardDimensions, board, inGame);
+        redGhost = new RedGhost(boardDimensions, board, pacman, inGame);
+        pinkGhost = new PinkGhost(boardDimensions, board, pacman, inGame);
+        blueGhost = new BlueGhost(boardDimensions, board, pacman, redGhost, inGame);
+        orangeGhost = new OrangeGhost(boardDimensions, board, pacman, inGame);
+        pacmanThread = new Thread(pacman);
+        redGhostThread = new Thread(redGhost);
+        pinkGhostThread = new Thread(pinkGhost);
+        blueGhostThread = new Thread(blueGhost);
+        orangeGhostThread = new Thread(orangeGhost);
     }
 
     @Override
@@ -84,42 +98,64 @@ public class GameBoard extends JPanel implements KeyListener {
                     g.setColor(Color.black);
                     g.fillRect(j * boardDimensions,i * boardDimensions, boardDimensions, boardDimensions);
                 }
+                else if (board[i][j] == D){
+                    g.setColor(Color.magenta);
+                    g.fillRect(j * boardDimensions,i * boardDimensions + 6, boardDimensions, 6);
+                }
             }
         }
 
         pacman.drawPacman(g);
         redGhost.drawRedGhost(g);
+        pinkGhost.drawPinkGhost(g);
         blueGhost.drawBlueGhost(g);
-
-//        System.out.println("x cord: " + panelX + ", y cord: " + panelY);
-//        System.out.println("cord x: " + panelX + ", cord y: " + panelY + ", col: " + panelX / 15 + ", row: " + panelY / 15 + ", square: " + board[panelY/15][panelX/15]);
-
+        orangeGhost.drawPinkGhost(g);
     }
 
-    private void startAnimation() {
-        inGame = true;
-        Timer timer = new Timer(30, new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                updateCharacterImageIndex();
-                moveCharters();
-                repaint();
-            }
-        });
+    @Override
+    public void run() {
+        pacmanThread.start();
+        redGhostThread.start();
+        pinkGhostThread.start();
+        blueGhostThread.start();
+        orangeGhostThread.start();
 
-        timer.start();
+        inGame = true;
+        while (inGame){
+//            updateCharacterImageIndex();
+//            moveCharters();
+            repaint();
+            try {
+                Thread.sleep(30);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                inGame = false;
+            }
+        }
     }
 
     private void moveCharters(){
-        pacman.movePacman();
-        redGhost.moveRedGhost(pacman.panelX, pacman.panelY);
-//        blueGhost.moveBlueGhost();
+
+        System.out.println("pacman thread " + pacmanThread.getState());
+        System.out.println("redGhostThread thread " + redGhostThread.getState());
+        System.out.println("pinkGhostThread thread " + pinkGhostThread.getState());
+        System.out.println("blueGhostThread thread " + blueGhostThread.getState());
+        System.out.println("orangeGhostThread thread " + orangeGhostThread.getState());
+
+        System.out.println();
+
+//        pacmanThread.run();
+//        redGhostThread.run();
+//        pinkGhostThread.run();
+//        blueGhostThread.run();
     }
 
     private void updateCharacterImageIndex(){
         pacman.updateImageIndex();
         redGhost.updateImageIndex();
+        pinkGhost.updateImageIndex();
         blueGhost.updateImageIndex();
+        orangeGhost.updateImageIndex();
     }
 
     @Override

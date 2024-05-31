@@ -1,3 +1,5 @@
+package testClases;
+
 import javax.swing.*;
 import java.awt.*;
 
@@ -17,9 +19,9 @@ public class MainWindow{
         createStatusBar();
         frame.getContentPane().add(statusBar, BorderLayout.NORTH);
 
-        GameBoard gameBoard = new GameBoard();
-        frame.addKeyListener(gameBoard);
-        frame.getContentPane().add(gameBoard);
+//        GameBoard gameBoard = new GameBoard();
+//        frame.addKeyListener(gameBoard);
+//        frame.getContentPane().add(gameBoard);
 
         frame.pack();
         frame.setVisible(true);

@@ -3,12 +3,8 @@ package Characters;
 import javax.swing.*;
 import java.awt.*;
 
-public class Pacman {
+public class Pacman implements Runnable {
 
-    //TODO: fix the usage of W here
-    final static int W=1; // Wall.
-    final static int F=2; // Crossroads with food
-    final static int E=3; // Empty crossroads
     private final int[][] board;
     private final int boardDimensions;
 
@@ -19,18 +15,20 @@ public class Pacman {
     private final int initSpeedX = 3;
     private final int initSpeedY = 3;
     private int currentPacmanImageIndex;
-    private int currentPacmanOrientation;
+    public int currentPacmanOrientation;
     private Image[] pacmanImagesRight;
     private Image[] pacmanImagesLeft;
     private Image[] pacmanImagesUp;
     private Image[] pacmanImagesDown;
+    private boolean inGame;
 
-    public Pacman(int boardDimensions, int[][] board){
+    public Pacman(int boardDimensions, int[][] board, boolean inGame){
         this.board = board;
         this.boardDimensions = boardDimensions;
         loadImages();
         currentPacmanImageIndex = 0;
         currentPacmanOrientation = 1;
+        this.inGame = true;
     }
 
     public void drawPacman(Graphics g){
@@ -78,24 +76,36 @@ public class Pacman {
         currentPacmanOrientation = 2;
     }
 
+    @Override
+    public void run() {
+        while (inGame){
 
-    public void movePacman() {
+            if (panelX - 13 > 0 && panelX < board.length * boardDimensions && panelX / boardDimensions < 22 && checkCollision()){
+//                    return;
+            }else {
+                panelX += currentSpeedX;
+                panelY += currentSpeedY;
 
-        if (panelX - 13 > 0 && panelX < board.length * 19 && panelX / boardDimensions < 22 && checkCollision()){
-            return;
+                //wall passing
+                if (panelX <= 0){
+                    panelX = board.length * boardDimensions - 20;
+                } else if (panelX >= board.length * boardDimensions - boardDimensions) {
+                    panelX = 0;
+                }
+
+                recenterPacman();
+            }
+
+            updateImageIndex();
+
+            try {
+                Thread.sleep(30);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+//                System.out.println(e.getMessage());
+//                inGame = false;
+            }
         }
-
-        panelX += currentSpeedX;
-        panelY += currentSpeedY;
-
-        //wall passing
-        if (panelX <= 0){
-            panelX = board.length * boardDimensions - boardDimensions;
-        } else if (panelX >= board.length * boardDimensions - boardDimensions) {
-            panelX = 0;
-        }
-
-        recenterPacman();
     }
 
     private void recenterPacman() {
@@ -116,22 +126,22 @@ public class Pacman {
 //        System.out.println(" panel:" + board[panelY/18][panelX/18] + ", row: " + panelY/18 + " cord y: " + panelY+ ", col: " + panelX/18 +  " cord x: " + panelX );
 
         // TODO: refactor orientations for all characters to be enum like Direction.LEFT
-        if (currentPacmanOrientation == 0 && board[(panelY + 13)/ boardDimensions - 1][panelX/ boardDimensions] == W){
+        if (currentPacmanOrientation == 0 && board[(panelY + 13)/ boardDimensions - 1][panelX/ boardDimensions] == 1){
             currentSpeedY = 0;
             currentSpeedX = 0;
             return true;
         }
-        if (currentPacmanOrientation == 1 && board[panelY/ boardDimensions][(panelX - 2)/ boardDimensions + 1] == W) {
+        if (currentPacmanOrientation == 1 && board[panelY/ boardDimensions][(panelX - 2)/ boardDimensions + 1] == 1) {
             currentSpeedY = 0;
             currentSpeedX = 0;
             return true;
         }
-        if (currentPacmanOrientation == 2 && board[(panelY - 2)/ boardDimensions + 1][panelX/ boardDimensions] == W) {
+        if (currentPacmanOrientation == 2 && board[(panelY - 2)/ boardDimensions + 1][panelX/ boardDimensions] == 1) {
             currentSpeedY = 0;
             currentSpeedX = 0;
             return true;
         }
-        if (currentPacmanOrientation == 3 && board[panelY / boardDimensions][(panelX + 13)/ boardDimensions - 1] == W){
+        if (currentPacmanOrientation == 3 && board[panelY / boardDimensions][(panelX + 13)/ boardDimensions - 1] == 1){
             currentSpeedY = 0;
             currentSpeedX = 0;
             return true;

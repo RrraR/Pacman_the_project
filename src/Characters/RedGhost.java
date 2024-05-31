@@ -2,12 +2,9 @@ package Characters;
 
 import javax.swing.*;
 import java.awt.*;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.PriorityQueue;
 
-public class RedGhost {
+public class RedGhost implements Runnable {
 
     final static int W=1; // Wall.
     final static int F=2; // Crossroads with food
@@ -27,23 +24,27 @@ public class RedGhost {
     private int currentSpeedY = 0; // Change in y-coordinate per frame
     private final int initSpeedX = 2;
     private final int initSpeedY = 2;
-    private int targetX;
-    private int targetY;
+    private int nodeTargetX;
+    private int nodeTargetY;
     private int speed = 2;
+    private Pacman pacman;
 
     private PathFinding pathfinding;
     private List<Node> path;
     private int pathIndex = 0;
+    boolean inGame;
 
-    public RedGhost(int boardDimensions, int[][] board){
+    public RedGhost(int boardDimensions, int[][] board, Pacman pacman, boolean inGame){
         this.board = board;
         this.boardDimensions = boardDimensions;
         loadImages();
         currentGhostImageIndex = 0;
         currentGhostOrientation = 1;
         this.pathfinding = new PathFinding(board);
-        this.targetX = panelX;
-        this.targetY = panelY;
+        this.nodeTargetX = panelX;
+        this.nodeTargetY = panelY;
+        this.pacman = pacman;
+        this.inGame = true;
     }
 
     public void drawRedGhost(Graphics g){
@@ -82,48 +83,58 @@ public class RedGhost {
         }
     }
 
-    public void moveRedGhost(int pacmanPosX, int pacmanPosY){
-        if (path == null || (panelX/boardDimensions == targetX/boardDimensions && panelY/boardDimensions == targetY/boardDimensions)) {
-            List<Node> newPath = pathfinding.findPath(panelX / boardDimensions, panelY / boardDimensions, pacmanPosX / boardDimensions, pacmanPosY / boardDimensions);
+    @Override
+    public void run() {
+        while (inGame){
+            int pacmanPosX = pacman.panelX;
+            int pacmanPosY = pacman.panelY;
 
-            if (path == null || !path.equals(newPath)){
+            if (path == null || pathIndex >= path.size() || (path.size()/5 <= pathIndex && path.size()/5 > 1)) {
+                path = pathfinding.findPath(panelX / boardDimensions, panelY / boardDimensions, pacmanPosX / boardDimensions, pacmanPosY / boardDimensions);
+//            for (Node node: path) {
+//                System.out.println("Node " + node.x + " " + node.y);
+//            }
+//            System.out.println("Pathindex " + pathIndex);
                 pathIndex = 0;
-                path = newPath;
             }
-        }
 
-        if (path != null && !path.isEmpty()) {
-            Node nextNode = path.get(pathIndex);
-            targetX = nextNode.x * boardDimensions;
-            targetY = nextNode.y * boardDimensions;
-        }
-
-        if (panelX < targetX) {
-            panelX += speed;
-            currentGhostOrientation = 1;
-            if (panelX > targetX) panelX = targetX;
-        } else if (panelX > targetX) {
-            panelX -= speed;
-            currentGhostOrientation = 3;
-            if (panelX < targetX) panelX = targetX;
-        }
-
-        if (panelY < targetY) {
-            panelY += speed;
-            currentGhostOrientation = 2;
-            if (panelY > targetY) panelY = targetY;
-        } else if (panelY > targetY) {
-            panelY -= speed;
-            currentGhostOrientation = 0;
-            if (panelY < targetY) panelY = targetY;
-        }
-
-        if (panelX == targetX && panelY == targetY && path != null) {
-            pathIndex++;
-            if (pathIndex < path.size()) {
+            if (path != null && !path.isEmpty() && pathIndex <= path.size() - 1) {
                 Node nextNode = path.get(pathIndex);
-                targetX = nextNode.x * boardDimensions;
-                targetY = nextNode.y * boardDimensions;
+                nodeTargetX = nextNode.x * boardDimensions;
+                nodeTargetY = nextNode.y * boardDimensions;
+            }
+
+            if (panelX < nodeTargetX) {
+                panelX += speed;
+                currentGhostOrientation = 1;
+                if (panelX > nodeTargetX) panelX = nodeTargetX;
+            } else if (panelX > nodeTargetX) {
+                panelX -= speed;
+                currentGhostOrientation = 3;
+                if (panelX < nodeTargetX) panelX = nodeTargetX;
+            }
+
+            if (panelY < nodeTargetY) {
+                panelY += speed;
+                currentGhostOrientation = 2;
+                if (panelY > nodeTargetY) panelY = nodeTargetY;
+            } else if (panelY > nodeTargetY) {
+                panelY -= speed;
+                currentGhostOrientation = 0;
+                if (panelY < nodeTargetY) panelY = nodeTargetY;
+            }
+
+            if (panelX == nodeTargetX && panelY == nodeTargetY && path != null) {
+                pathIndex++;
+            }
+
+            updateImageIndex();
+
+            try {
+                Thread.sleep(30);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+//                inGame = false;
             }
         }
     }
