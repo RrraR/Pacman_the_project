@@ -6,12 +6,8 @@ import java.util.List;
 
 public class RedGhost implements Runnable {
 
-    final static int W=1; // Wall.
-    final static int F=2; // Crossroads with food
-    final static int E=3; // Empty crossroads
-
-    public int panelX = 225;
-    public int panelY = 155;
+    private int panelX = 225;
+    private int panelY = 153;
     private Image[] redGhostImagesRight;
     private Image[] redGhostImagesLeft;
     private Image[] redGhostImagesUp;
@@ -20,21 +16,18 @@ public class RedGhost implements Runnable {
     private final int boardDimensions;
     private int currentGhostImageIndex;
     private int currentGhostOrientation;
-    private int currentSpeedX = 0; // Change in x-coordinate per frame
-    private int currentSpeedY = 0; // Change in y-coordinate per frame
-    private final int initSpeedX = 2;
-    private final int initSpeedY = 2;
     private int nodeTargetX;
     private int nodeTargetY;
-    private int speed = 2;
-    private Pacman pacman;
+    private final int speed = 2;
+    private final Pacman pacman;
+    private final Object lock;
 
     private PathFinding pathfinding;
     private List<Node> path;
     private int pathIndex = 0;
     boolean inGame;
 
-    public RedGhost(int boardDimensions, int[][] board, Pacman pacman, boolean inGame){
+    public RedGhost(int boardDimensions, int[][] board, Pacman pacman, boolean inGame, Object lock){
         this.board = board;
         this.boardDimensions = boardDimensions;
         loadImages();
@@ -45,6 +38,7 @@ public class RedGhost implements Runnable {
         this.nodeTargetY = panelY;
         this.pacman = pacman;
         this.inGame = true;
+        this.lock = lock;
     }
 
     public void drawRedGhost(Graphics g){
@@ -83,18 +77,40 @@ public class RedGhost implements Runnable {
         }
     }
 
+    public int getRedGhostCordX(){
+        synchronized (lock) {
+            return panelX;
+        }
+    }
+
+    public int getRedGhostCordY() {
+        synchronized (lock) {
+            return panelY;
+        }
+    }
+
+    private boolean checkCollisionWithPacman(int pacmanPosX, int pacmanPosY) {
+        // Implement your collision detection logic
+        return panelX/boardDimensions == pacmanPosX/boardDimensions && panelY/boardDimensions == pacmanPosY/boardDimensions; // Simplified example
+    }
+
     @Override
     public void run() {
         while (inGame){
-            int pacmanPosX = pacman.panelX;
-            int pacmanPosY = pacman.panelY;
+            int pacmanPosX, pacmanPosY;
+            synchronized (lock){
+                pacmanPosX = pacman.getPacmanCordX();
+                pacmanPosY = pacman.getPacmanCordY();
+            }
+
+            if (checkCollisionWithPacman(pacmanPosX, pacmanPosY)) {
+                System.out.println("red ghost collision");
+                pacman.deathCallback.onPacmanDeath();
+                break; // Stop the ghost movement
+            }
 
             if (path == null || pathIndex >= path.size() || (path.size()/5 <= pathIndex && path.size()/5 > 1)) {
                 path = pathfinding.findPath(panelX / boardDimensions, panelY / boardDimensions, pacmanPosX / boardDimensions, pacmanPosY / boardDimensions);
-//            for (Node node: path) {
-//                System.out.println("Node " + node.x + " " + node.y);
-//            }
-//            System.out.println("Pathindex " + pathIndex);
                 pathIndex = 0;
             }
 

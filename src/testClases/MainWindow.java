@@ -19,7 +19,7 @@ public class MainWindow{
         createStatusBar();
         frame.getContentPane().add(statusBar, BorderLayout.NORTH);
 
-//        GameBoard gameBoard = new GameBoard();
+//        Components.GameBoard gameBoard = new Components.GameBoard();
 //        frame.addKeyListener(gameBoard);
 //        frame.getContentPane().add(gameBoard);
 

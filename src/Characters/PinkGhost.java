@@ -11,8 +11,8 @@ public class PinkGhost implements Runnable {
     private Image[] pinkGhostImagesUp;
     private Image[] pinkGhostImagesDown;
 
-    public int panelX = 210;
-    public int panelY = 209;
+    private int panelX = 213;
+    private int panelY = 209;
     private final int boardDimensions;
     private int currentGhostImageIndex;
     private int currentGhostOrientation;
@@ -22,11 +22,12 @@ public class PinkGhost implements Runnable {
     private PathFinding pathfinding;
     private List<Node> path;
     private int pathIndex = 0;
-    private Pacman pacman;
+    private final Pacman pacman;
     private final int[][] board;
     private boolean inGame;
+    private final Object lock;
 
-    public PinkGhost(int boardDimensions, int[][] board, Pacman pacman, boolean inGame){
+    public PinkGhost(int boardDimensions, int[][] board, Pacman pacman, boolean inGame, Object lock){
         this.boardDimensions = boardDimensions;
         loadImages();
         currentGhostImageIndex = 0;
@@ -37,6 +38,7 @@ public class PinkGhost implements Runnable {
         this.pacman = pacman;
         this.board = board;
         this.inGame = false;
+        this.lock = lock;
     }
 
     public void drawPinkGhost(Graphics g){
@@ -60,10 +62,6 @@ public class PinkGhost implements Runnable {
         currentGhostImageIndex = (currentGhostImageIndex + 1) % 2;
     }
 
-    public void exitCage(){
-
-    }
-
     private void loadImages(){
         pinkGhostImagesRight = new Image[2];
         pinkGhostImagesLeft = new Image[2];
@@ -78,19 +76,37 @@ public class PinkGhost implements Runnable {
         }
     }
 
+    public int getPinkGhostCordX(){
+        synchronized (lock) {
+            return panelX;
+        }
+    }
+
+    public int getPinkGhostCordY() {
+        synchronized (lock) {
+            return panelY;
+        }
+    }
+
     @Override
     public void run() {
         inGame = true;
 
-
         while (inGame){
-            int pacmanPosX = pacman.panelX;
-            int pacmanPosY = pacman.panelY;
+
+            int pacmanPosX, pacmanPosY, pacmanOrientation;
+
+            synchronized (lock){
+                pacmanPosX = pacman.getPacmanCordX();
+                pacmanPosY = pacman.getPacmanCordY();
+                pacmanOrientation = pacman.getPacmanOrientation();
+            }
+
             int targetPacmanX = pacmanPosX;
             int targetPacmanY = pacmanPosY;
 
             for (int i = 0; i < 4; i++) {
-                switch (pacman.currentPacmanOrientation) {
+                switch (pacmanOrientation) {
                     case 0:
                         if (targetPacmanY - boardDimensions > 0 && board[(targetPacmanY - boardDimensions) / boardDimensions][pacmanPosX / boardDimensions] != 1) {
                             targetPacmanY -= boardDimensions;
@@ -137,7 +153,7 @@ public class PinkGhost implements Runnable {
     }
 
     private void movePinkGhost(int targetX, int targetY){
-        if (path == null || pathIndex >= path.size() || (path.size()/5 <= pathIndex && path.size()/5 > 1)) {
+        if (path == null || pathIndex >= path.size() || (path.size()/6 <= pathIndex && path.size()/6 > 1)) {
             path = pathfinding.findPath(panelX / boardDimensions, panelY / boardDimensions, targetX / boardDimensions, targetY / boardDimensions);
 //            for (Node node: path) {
 //                System.out.println("Node " + node.x + " " + node.y);

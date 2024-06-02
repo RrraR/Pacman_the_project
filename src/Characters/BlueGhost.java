@@ -1,15 +1,18 @@
 package Characters;
 
+import Components.GameBoard;
 import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
+import static Components.GameBoard.getNumberOfPelletsLeft;
+
 public class BlueGhost implements Runnable {
 
-    public int panelX = 225;
-    public int panelY = 155;
+    private int panelX = 186;
+    private int panelY = 209;
     private Image[] blueGhostImagesRight;
     private Image[] blueGhostImagesLeft;
     private Image[] blueGhostImagesUp;
@@ -22,19 +25,16 @@ public class BlueGhost implements Runnable {
     private int nodeTargetX;
     private int nodeTargetY;
     private int speed = 2;
-//    private Pacman pacman;
-//    private RedGhost redGhost;
     private PathFinding pathfinding;
     private List<Node> path;
     private int pathIndex = 0;
     boolean inGame;
     private List<int[]> foodCells;
+    private final Object lock;
 
-    public BlueGhost(int boardDimensions, int[][] board, Pacman pacman, RedGhost redGhost, boolean inGame){
+    public BlueGhost(int boardDimensions, int[][] board, boolean inGame, List<int[]> foodCells, Object lock){
         this.board = board;
         this.boardDimensions = boardDimensions;
-//        this.pacman = pacman;
-//        this.redGhost = redGhost;
         loadImages();
         this.nodeTargetX = panelX;
         this.nodeTargetY = panelY;
@@ -42,16 +42,8 @@ public class BlueGhost implements Runnable {
         currentGhostOrientation = 1;
         this.pathfinding = new PathFinding(board);
         this.inGame = true;
-        foodCells = new ArrayList<>();
-
-        for (int i = 0; i < board.length; i++) {
-            for (int j = 0; j < board[0].length; j++) {
-                if (board[i][j] == 2) {
-                    foodCells.add(new int[]{i, j});
-                }
-            }
-        }
-
+        this.foodCells = foodCells;
+        this.lock = lock;
     }
 
     public void drawBlueGhost(Graphics g){
@@ -90,15 +82,30 @@ public class BlueGhost implements Runnable {
         }
     }
 
+    public int getBlueGhostCordX(){
+        synchronized (lock) {
+            return panelX;
+        }
+    }
+
+    public int getBlueGhostCordY() {
+        synchronized (lock) {
+            return panelY;
+        }
+    }
+
     @Override
     public void run() {
         while (inGame){
+// todo possibly move the if to gameboard @run and start the thread when the condition is reached
+            if (foodCells.size() - getNumberOfPelletsLeft() >= 30){
+                int index = ThreadLocalRandom.current().nextInt(foodCells.size());
+                int[] randomCell = foodCells.get(index);
 
-            int index = ThreadLocalRandom.current().nextInt(foodCells.size());
-            int[] randomCell = foodCells.get(index);
+                //TODO: possibly fix passing randomCell[1] * boardDimensions and randomCell[0] * boardDimensions
+                moveBlueGhost(randomCell[1] * boardDimensions, randomCell[0] * boardDimensions);
+            }
 
-            //TODO: possibly fix passing randomCell[1] * boardDimensions and randomCell[0] * boardDimensions
-            moveBlueGhost(randomCell[1] * boardDimensions, randomCell[0] * boardDimensions);
             updateImageIndex();
 
             try {

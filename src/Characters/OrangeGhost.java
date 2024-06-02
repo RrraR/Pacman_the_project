@@ -4,14 +4,16 @@ import javax.swing.*;
 import java.awt.*;
 import java.util.List;
 
+import static Components.GameBoard.getNumberOfPelletsLeft;
+
 public class OrangeGhost implements Runnable {
     private Image[] orangeGhostImagesRight;
     private Image[] orangeGhostImagesLeft;
     private Image[] orangeGhostImagesUp;
     private Image[] orangeGhostImagesDown;
 
-    public int panelX = 225;
-    public int panelY = 155;
+    private int panelX = 240;
+    private int panelY = 209;
     private final int boardDimensions;
     private int currentGhostImageIndex;
     private int currentGhostOrientation;
@@ -21,11 +23,13 @@ public class OrangeGhost implements Runnable {
     private PathFinding pathfinding;
     private List<Node> path;
     private int pathIndex = 0;
-    private Pacman pacman;
+    private final Pacman pacman;
     private final int[][] board;
     private boolean inGame;
+    private List<int[]> foodCells;
+    private final Object lock;
 
-    public OrangeGhost(int boardDimensions, int[][] board, Pacman pacman, boolean inGame){
+    public OrangeGhost(int boardDimensions, int[][] board, Pacman pacman, boolean inGame, List<int[]> foodCells, Object lock){
         this.boardDimensions = boardDimensions;
         loadImages();
         currentGhostImageIndex = 0;
@@ -36,6 +40,8 @@ public class OrangeGhost implements Runnable {
         this.pacman = pacman;
         this.board = board;
         this.inGame = true;
+        this.foodCells = foodCells;
+        this.lock = lock;
     }
 
     public void drawPinkGhost(Graphics g){
@@ -73,23 +79,40 @@ public class OrangeGhost implements Runnable {
         }
     }
 
+    public int getOrangeGhostCordX(){
+        synchronized (lock) {
+            return panelX;
+        }
+    }
+
+    public int getOrangeGhostCordY() {
+        synchronized (lock) {
+            return panelY;
+        }
+    }
+
     @Override
     public void run() {
         while (inGame){
-            int pacmanPosX = pacman.panelX;
-            int pacmanPosY = pacman.panelY;
-            int targetGhostX = boardDimensions + 3;
-            int targetGhostY = board.length * boardDimensions - boardDimensions * 2;
+// todo possibly move the if to gameboard @run and start the thread when the condition is reached
+            if (getNumberOfPelletsLeft() < (foodCells.size() * 2)/3){
+                int pacmanPosX, pacmanPosY;
 
-            if (Math.abs((pacmanPosX - panelX)/boardDimensions) > 8 || Math.abs((pacmanPosY - panelY)/boardDimensions) > 8){
-                targetGhostX = pacmanPosX;
-                targetGhostY = pacmanPosY;
-            }else{
-                targetGhostX = boardDimensions + 3;
-                targetGhostY = board.length * boardDimensions - boardDimensions * 2;
+                synchronized (lock){
+                    pacmanPosX = pacman.getPacmanCordX();
+                    pacmanPosY = pacman.getPacmanCordY();
+                }
+
+                int targetGhostX = boardDimensions + 3;
+                int targetGhostY = board.length * boardDimensions - boardDimensions * 2;
+
+                if (Math.abs((pacmanPosX - panelX)/boardDimensions) > 8 || Math.abs((pacmanPosY - panelY)/boardDimensions) > 8){
+                    targetGhostX = pacmanPosX;
+                    targetGhostY = pacmanPosY;
+                }
+
+                moveOrangeGhost(targetGhostX, targetGhostY);
             }
-
-            moveOrangeGhost(targetGhostX, targetGhostY);
             updateImageIndex();
 
             try {

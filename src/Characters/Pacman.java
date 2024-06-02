@@ -5,30 +5,58 @@ import java.awt.*;
 
 public class Pacman implements Runnable {
 
+    private final int startPositionX = 209;
+    private final int startPositionY = 269;
+
     private final int[][] board;
     private final int boardDimensions;
-
-    public int panelX = 209;
-    public int panelY = 269;
+    private final Object lock;
+    private int panelX = 209;
+    private int panelY = 269;
     private int currentSpeedX = 3; // Change in x-coordinate per frame
     private int currentSpeedY = 0; // Change in y-coordinate per frame
     private final int initSpeedX = 3;
     private final int initSpeedY = 3;
     private int currentPacmanImageIndex;
-    public int currentPacmanOrientation;
+    private int currentPacmanOrientation;
     private Image[] pacmanImagesRight;
     private Image[] pacmanImagesLeft;
     private Image[] pacmanImagesUp;
     private Image[] pacmanImagesDown;
+    private Image[] pacmanDeathImages;
     private boolean inGame;
+    public int lives = 3;
 
-    public Pacman(int boardDimensions, int[][] board, boolean inGame){
+    public OnDeathCallback deathCallback;
+
+
+    public Pacman(int boardDimensions, int[][] board, boolean inGame, OnDeathCallback deathCallback, Object lock){
         this.board = board;
         this.boardDimensions = boardDimensions;
         loadImages();
         currentPacmanImageIndex = 0;
         currentPacmanOrientation = 1;
         this.inGame = true;
+        this.deathCallback = deathCallback;
+        this.lock = lock;
+    }
+
+    public int getPacmanCordX(){
+        synchronized (lock) {
+            return panelX;
+        }
+    }
+
+    public int getPacmanCordY() {
+        synchronized (lock) {
+            return panelY;
+        }
+    }
+
+    public int getPacmanOrientation(){
+        synchronized (lock) {
+            return currentPacmanOrientation;
+        }
     }
 
     public void drawPacman(Graphics g){
@@ -51,49 +79,60 @@ public class Pacman implements Runnable {
     public void updateImageIndex() {
         currentPacmanImageIndex = (currentPacmanImageIndex + 1) % 3;
     }
+//todo: fix usages of 1
 
     public void setMoveRight(){
-        currentSpeedY = 0;
-        currentSpeedX = initSpeedX;
-        currentPacmanOrientation = 1;
+        if (board[panelY/boardDimensions][(panelX)/boardDimensions + 1] != 1)
+        {
+            currentSpeedY = 0;
+            currentSpeedX = initSpeedX;
+            currentPacmanOrientation = 1;
+        }
     }
 
     public void setMoveLeft(){
-        currentSpeedX = -initSpeedX;
-        currentSpeedY = 0;
-        currentPacmanOrientation = 3;
+        if (board[panelY / boardDimensions][(panelX + 13)/ boardDimensions - 1] != 1){
+            currentSpeedX = -initSpeedX;
+            currentSpeedY = 0;
+            currentPacmanOrientation = 3;
+        }
     }
 
     public void setMoveUp(){
-        currentSpeedY = -initSpeedY;
-        currentSpeedX = 0;
-        currentPacmanOrientation = 0;
+        if (board[panelY/boardDimensions - 1][panelX/boardDimensions] != 1){
+            currentSpeedY = -initSpeedY;
+            currentSpeedX = 0;
+            currentPacmanOrientation = 0;
+        }
     }
 
     public void setMoveDown(){
-        currentSpeedX = 0;
-        currentSpeedY = initSpeedY;
-        currentPacmanOrientation = 2;
+        if (board[panelY/boardDimensions + 1][panelX/boardDimensions] != 1){
+            currentSpeedX = 0;
+            currentSpeedY = initSpeedY;
+            currentPacmanOrientation = 2;
+        }
     }
 
     @Override
     public void run() {
         while (inGame){
-
-            if (panelX - 13 > 0 && panelX < board.length * boardDimensions && panelX / boardDimensions < 22 && checkCollision()){
+            synchronized (lock){
+                if (panelX - 13 > 0 && panelX < board.length * boardDimensions && panelX / boardDimensions < 22 && checkCollision()){
 //                    return;
-            }else {
-                panelX += currentSpeedX;
-                panelY += currentSpeedY;
+                }else {
+                    panelX += currentSpeedX;
+                    panelY += currentSpeedY;
 
-                //wall passing
-                if (panelX <= 0){
-                    panelX = board.length * boardDimensions - 20;
-                } else if (panelX >= board.length * boardDimensions - boardDimensions) {
-                    panelX = 0;
+                    //wall passing
+                    if (panelX <= 0){
+                        panelX = board.length * boardDimensions - 20;
+                    } else if (panelX >= board.length * boardDimensions - boardDimensions) {
+                        panelX = 0;
+                    }
+
+                    recenterPacman();
                 }
-
-                recenterPacman();
             }
 
             updateImageIndex();
@@ -102,8 +141,6 @@ public class Pacman implements Runnable {
                 Thread.sleep(30);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-//                System.out.println(e.getMessage());
-//                inGame = false;
             }
         }
     }
@@ -147,6 +184,13 @@ public class Pacman implements Runnable {
             return true;
         }
 
+//       todo add ghost collision detection
+//        synchronized (lock) {
+//            if (deathCallback != null) {
+//                System.out.println("pacman collision ");
+//            }
+//        }
+
         return false;
     }
 
@@ -155,6 +199,8 @@ public class Pacman implements Runnable {
         pacmanImagesLeft = new Image[3];
         pacmanImagesUp = new Image[3];
         pacmanImagesDown = new Image[3];
+        pacmanDeathImages = new Image[4];
+
 
         for (int i = 0; i < 3; i++) {
             pacmanImagesRight[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\pacman13\\mspacman-right_" + i + ".png").getImage();
@@ -162,6 +208,13 @@ public class Pacman implements Runnable {
             pacmanImagesUp[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\pacman13\\mspacman-up_" + i + ".png").getImage();
             pacmanImagesDown[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\pacman13\\mspacman-down_" + i + ".png").getImage();
         }
+
+        pacmanDeathImages[0] = pacmanImagesRight[1];
+        pacmanDeathImages[1] = pacmanImagesLeft[1];
+        pacmanDeathImages[2] = pacmanImagesUp[1];
+        pacmanDeathImages[3] = pacmanImagesDown[1];
+
+
     }
 
 }
