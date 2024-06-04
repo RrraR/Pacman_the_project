@@ -9,7 +9,7 @@ import java.awt.event.KeyListener;
 import java.util.ArrayList;
 import java.util.List;
 
-public class GameBoard extends JPanel implements KeyListener, Runnable, OnDeathCallback {
+public class GameBoard extends JPanel implements KeyListener, Runnable {
     final static int W=1; // Wall.
     final static int F=2; // Crossroads with food
     final static int E=3; // Empty crossroads
@@ -47,7 +47,7 @@ public class GameBoard extends JPanel implements KeyListener, Runnable, OnDeathC
         {W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W}
     };
 
-    private final Object lock = new Object();
+    private final Object monitor = new Object();
 
     private final int boardDimensions = 19;
     public Boolean inGame = false;
@@ -64,25 +64,29 @@ public class GameBoard extends JPanel implements KeyListener, Runnable, OnDeathC
     public int score;
     private final List<int[]> foodCells;
 
+    private boolean isPacmanDead;
+
     public GameBoard(){
         setPreferredSize(new Dimension(438, 457));
         setBackground(Color.BLACK);
         foodCells = new ArrayList<>();
-        countFood();
+        countAllFood();
 
-        pacman = new Pacman(boardDimensions, board, inGame, this, lock);
-        redGhost = new RedGhost(boardDimensions, board, pacman, inGame, lock);
-        pinkGhost = new PinkGhost(boardDimensions, board, pacman, inGame, lock);
-        blueGhost = new BlueGhost(boardDimensions, board, inGame, foodCells, lock);
-        orangeGhost = new OrangeGhost(boardDimensions, board, pacman, inGame, foodCells, lock);
+        pacman = new Pacman(boardDimensions, board, inGame, monitor);
+        redGhost = new RedGhost(boardDimensions, board, pacman, inGame, monitor);
+        pinkGhost = new PinkGhost(boardDimensions, board, pacman, inGame, monitor);
+        blueGhost = new BlueGhost(boardDimensions, board, pacman, inGame, foodCells, monitor);
+        orangeGhost = new OrangeGhost(boardDimensions, board, pacman, inGame, foodCells, monitor);
         pacmanThread = new Thread(pacman);
         redGhostThread = new Thread(redGhost);
         pinkGhostThread = new Thread(pinkGhost);
         blueGhostThread = new Thread(blueGhost);
         orangeGhostThread = new Thread(orangeGhost);
+
+        isPacmanDead = false;
     }
 
-    private void countFood(){
+    private void countAllFood(){
         for (int i = 0; i < board.length; i++) {
             for (int j = 0; j < board[0].length; j++) {
                 if (board[i][j] == F) {
@@ -90,6 +94,18 @@ public class GameBoard extends JPanel implements KeyListener, Runnable, OnDeathC
                 }
             }
         }
+    }
+
+    public static int getNumberOfFoodsLeft(){
+        int number = 0;
+        for (int i = 0; i < board.length; i++) {
+            for (int j = 0; j < board[0].length; j++) {
+                if (board[i][j] == F) {
+                    number++;
+                }
+            }
+        }
+        return number;
     }
 
     @Override
@@ -130,23 +146,11 @@ public class GameBoard extends JPanel implements KeyListener, Runnable, OnDeathC
             }
         }
 
-        pacman.drawPacman(g);
+        pacman.drawPacman(g, isPacmanDead);
         redGhost.drawRedGhost(g);
         pinkGhost.drawPinkGhost(g);
         blueGhost.drawBlueGhost(g);
         orangeGhost.drawPinkGhost(g);
-    }
-
-    public static int getNumberOfPelletsLeft(){
-        int number = 0;
-        for (int i = 0; i < board.length; i++) {
-            for (int j = 0; j < board[0].length; j++) {
-                if (board[i][j] == F) {
-                    number++;
-                }
-            }
-        }
-        return number;
     }
 
     @Override
@@ -162,11 +166,11 @@ public class GameBoard extends JPanel implements KeyListener, Runnable, OnDeathC
         blueGhostThread.start();
         orangeGhostThread.start();
 
-//        new Thread(this::ghostCollisionDetectionLoop).start();
+        new Thread(this::ghostCollisionDetectionLoop).start();
 
         inGame = true;
         while (inGame){
-            eat();
+            updateFoodCells();
             repaint();
             try {
                 Thread.sleep(30);
@@ -177,31 +181,72 @@ public class GameBoard extends JPanel implements KeyListener, Runnable, OnDeathC
         }
     }
 
-    @Override
-    public void onPacmanDeath() {
-        System.out.println("Pacman has died!");
-        inGame = false;
-    }
-
     private void ghostCollisionDetectionLoop() {
-        while (inGame) {
-            synchronized (lock) {
+        while (inGame){
+            synchronized (monitor){
                 if (isCollision(pacman.getPacmanCordX(), pacman.getPacmanCordY(), redGhost.getRedGhostCordX(), redGhost.getRedGhostCordY()) ||
                         isCollision(pacman.getPacmanCordX(), pacman.getPacmanCordY(), pinkGhost.getPinkGhostCordX(), pinkGhost.getPinkGhostCordY()) ||
                         isCollision(pacman.getPacmanCordX(), pacman.getPacmanCordY(), blueGhost.getBlueGhostCordX(), blueGhost.getBlueGhostCordY()) ||
                         isCollision(pacman.getPacmanCordX(), pacman.getPacmanCordY(), orangeGhost.getOrangeGhostCordX(), orangeGhost.getOrangeGhostCordY())) {
 
-                    System.out.println("game board collision");
-                    onPacmanDeath();
+                    stopCharacterMovement();
+                    isPacmanDead = true;
 
-                    break;
+                    Thread pacmanDeathAnimationThread = new Thread(this::deathAnimationLoop);
+                    pacmanDeathAnimationThread.start();
+                    try {
+                        pacmanDeathAnimationThread.join();
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+
+                    pacman.lives--;
+
+                    if (pacman.lives <= 0) {
+                        inGame = false;
+                    } else {
+                        resetPositions();
+                        isPacmanDead = false;
+                        try {
+                            Thread.sleep(500);
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+
                 }
             }
+        }
+    }
+
+    private void deathAnimationLoop(){
+        for (int i = 0; i < 4; i++){
+            repaint();
             try {
-                Thread.sleep(30);
+                Thread.sleep(200);
             } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
+                throw new RuntimeException(e);
             }
+        }
+    }
+
+    private void stopCharacterMovement(){
+        synchronized (monitor) {
+            pacman.stopMovement();
+            redGhost.stopMovement();
+            pinkGhost.stopMovement();
+            blueGhost.stopMovement();
+            orangeGhost.stopMovement();
+        }
+    }
+
+    private void resetPositions() {
+        synchronized (monitor) {
+            pacman.resetPosition();
+            redGhost.resetPosition();
+            pinkGhost.resetPosition();
+            blueGhost.resetPosition();
+            orangeGhost.resetPosition();
         }
     }
 
@@ -213,28 +258,26 @@ public class GameBoard extends JPanel implements KeyListener, Runnable, OnDeathC
         return String.valueOf(score);
     }
 
-    private void eat(){
+    public String getPacmanLives(){
+        return String.valueOf(pacman.lives);
+    }
+
+    private void updateFoodCells(){
         int pacmanPosX, pacmanPosY;
-        synchronized (lock){
+        synchronized (monitor){
             pacmanPosX = pacman.getPacmanCordX();
             pacmanPosY = pacman.getPacmanCordY();
         }
 
         if (board[pacmanPosY/boardDimensions][pacmanPosX/boardDimensions] == F){
             board[pacmanPosY/boardDimensions][pacmanPosX/boardDimensions] = E;
-            score += 10;
+            updateScore(10);
+            pacman.updateAmountOfFoodEaten();
         }
     }
 
-    private void moveCharters(){
-
-        System.out.println("pacman thread " + pacmanThread.getState());
-        System.out.println("redGhostThread thread " + redGhostThread.getState());
-        System.out.println("pinkGhostThread thread " + pinkGhostThread.getState());
-        System.out.println("blueGhostThread thread " + blueGhostThread.getState());
-        System.out.println("orangeGhostThread thread " + orangeGhostThread.getState());
-
-        System.out.println();
+    private void updateScore(int addValue){
+        score += addValue;
     }
 
     @Override

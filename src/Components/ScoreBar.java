@@ -21,6 +21,7 @@ public class ScoreBar extends JPanel implements Runnable {
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         g.drawString("Score: " + gameBoard.getScore(), 20, 20);
+        g.drawString("Lives: " + gameBoard.getPacmanLives(), 20, 40);
     }
 
     @Override

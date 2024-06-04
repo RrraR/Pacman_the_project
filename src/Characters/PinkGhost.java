@@ -11,6 +11,9 @@ public class PinkGhost implements Runnable {
     private Image[] pinkGhostImagesUp;
     private Image[] pinkGhostImagesDown;
 
+    private final int startPositionX = 213;
+    private final int startPositionY = 209;
+
     private int panelX = 213;
     private int panelY = 209;
     private final int boardDimensions;
@@ -25,9 +28,10 @@ public class PinkGhost implements Runnable {
     private final Pacman pacman;
     private final int[][] board;
     private boolean inGame;
-    private final Object lock;
+    private final Object monitor;
+    private boolean ghostIsReleased;
 
-    public PinkGhost(int boardDimensions, int[][] board, Pacman pacman, boolean inGame, Object lock){
+    public PinkGhost(int boardDimensions, int[][] board, Pacman pacman, boolean inGame, Object monitor){
         this.boardDimensions = boardDimensions;
         loadImages();
         currentGhostImageIndex = 0;
@@ -38,7 +42,8 @@ public class PinkGhost implements Runnable {
         this.pacman = pacman;
         this.board = board;
         this.inGame = false;
-        this.lock = lock;
+        this.monitor = monitor;
+        ghostIsReleased = false;
     }
 
     public void drawPinkGhost(Graphics g){
@@ -62,6 +67,10 @@ public class PinkGhost implements Runnable {
         currentGhostImageIndex = (currentGhostImageIndex + 1) % 2;
     }
 
+    public void stopMovement(){
+        speed = 0;
+    }
+
     private void loadImages(){
         pinkGhostImagesRight = new Image[2];
         pinkGhostImagesLeft = new Image[2];
@@ -77,14 +86,27 @@ public class PinkGhost implements Runnable {
     }
 
     public int getPinkGhostCordX(){
-        synchronized (lock) {
+        synchronized (monitor) {
             return panelX;
         }
     }
 
     public int getPinkGhostCordY() {
-        synchronized (lock) {
+        synchronized (monitor) {
             return panelY;
+        }
+    }
+
+    public void resetPosition() {
+        synchronized (monitor) {
+            panelX = startPositionX;
+            panelY = startPositionY;
+            path = null;
+            pathIndex = 0;
+            currentGhostImageIndex = 0;
+            currentGhostOrientation = 1;
+            speed = 2;
+            ghostIsReleased = false;
         }
     }
 
@@ -93,53 +115,23 @@ public class PinkGhost implements Runnable {
         inGame = true;
 
         while (inGame){
+            if (ghostIsReleased){
+                int pacmanPosX, pacmanPosY, pacmanOrientation;
 
-            int pacmanPosX, pacmanPosY, pacmanOrientation;
-
-            synchronized (lock){
-                pacmanPosX = pacman.getPacmanCordX();
-                pacmanPosY = pacman.getPacmanCordY();
-                pacmanOrientation = pacman.getPacmanOrientation();
-            }
-
-            int targetPacmanX = pacmanPosX;
-            int targetPacmanY = pacmanPosY;
-
-            for (int i = 0; i < 4; i++) {
-                switch (pacmanOrientation) {
-                    case 0:
-                        if (targetPacmanY - boardDimensions > 0 && board[(targetPacmanY - boardDimensions) / boardDimensions][pacmanPosX / boardDimensions] != 1) {
-                            targetPacmanY -= boardDimensions;
-                        }
-                        break;
-                    case 1:
-                        if (targetPacmanX + boardDimensions >= board[0].length * boardDimensions ) {
-                            targetPacmanX = boardDimensions * 4;
-                            break;
-                        } else if (board[pacmanPosY / boardDimensions][(targetPacmanX + boardDimensions) / boardDimensions] != 1
-//                                && targetPacmanX + boardDimensions < boardDimensions * board[0].length
-                        ) {
-                            targetPacmanX += boardDimensions;
-                        }
-                        break;
-                    case 2:
-                        if (targetPacmanY + boardDimensions < boardDimensions * board.length && board[(targetPacmanY + boardDimensions) / boardDimensions][pacmanPosX / boardDimensions] != 1) {
-                            targetPacmanY += boardDimensions;
-                        }
-                        break;
-                    case 3:
-                        if (targetPacmanX - boardDimensions <= 0) {
-                            targetPacmanX = board[0].length * boardDimensions - boardDimensions * 4;
-                            break;
-                        }
-                        if (targetPacmanX - boardDimensions > 0 && board[pacmanPosY / boardDimensions][(targetPacmanX - boardDimensions) / boardDimensions] != 1) {
-                            targetPacmanX -= boardDimensions;
-                        }
-                        break;
+                synchronized (monitor){
+                    pacmanPosX = pacman.getPacmanCordX();
+                    pacmanPosY = pacman.getPacmanCordY();
+                    pacmanOrientation = pacman.getPacmanOrientation();
                 }
 
+                int[] target = getGhostTarget(pacmanPosX, pacmanPosY, pacmanOrientation);
+                movePinkGhost(target[0], target[1]);
             }
-            movePinkGhost(targetPacmanX, targetPacmanY);
+            else {
+                //todo fix passing coords like this
+                movePinkGhost(225, 153);
+                ghostIsReleased = true;
+            }
             updateImageIndex();
 
             try {
@@ -149,6 +141,51 @@ public class PinkGhost implements Runnable {
 //                inGame = false;
             }
         }
+
+    }
+
+    private int[] getGhostTarget(int pacmanPosX, int pacmanPosY, int pacmanOrientation){
+        int targetPacmanX = pacmanPosX;
+        int targetPacmanY = pacmanPosY;
+        for (int i = 0; i < 4; i++) {
+            switch (pacmanOrientation) {
+                case 0:
+                    if (targetPacmanY - boardDimensions > 0 && board[(targetPacmanY - boardDimensions) / boardDimensions][pacmanPosX / boardDimensions] != 1) {
+                        targetPacmanY -= boardDimensions;
+                    }
+                    break;
+                case 1:
+                    if (targetPacmanX + boardDimensions >= board[0].length * boardDimensions ) {
+                        targetPacmanX = boardDimensions * 4;
+                        break;
+                    } else if (board[pacmanPosY / boardDimensions][(targetPacmanX + boardDimensions) / boardDimensions] != 1
+//                                && targetPacmanX + boardDimensions < boardDimensions * board[0].length
+                    ) {
+                        targetPacmanX += boardDimensions;
+                    }
+                    break;
+                case 2:
+                    if (targetPacmanY + boardDimensions < boardDimensions * board.length && board[(targetPacmanY + boardDimensions) / boardDimensions][pacmanPosX / boardDimensions] != 1) {
+                        targetPacmanY += boardDimensions;
+                    }
+                    break;
+                case 3:
+                    if (targetPacmanX - boardDimensions <= 0) {
+                        targetPacmanX = board[0].length * boardDimensions - boardDimensions * 4;
+                        break;
+                    }
+                    if (targetPacmanX - boardDimensions > 0 && board[pacmanPosY / boardDimensions][(targetPacmanX - boardDimensions) / boardDimensions] != 1) {
+                        targetPacmanX -= boardDimensions;
+                    }
+                    break;
+            }
+        }
+
+        int[] targetCell = new int[2];
+        targetCell[0] = targetPacmanX;
+        targetCell[1] = targetPacmanY;
+
+        return targetCell;
 
     }
 

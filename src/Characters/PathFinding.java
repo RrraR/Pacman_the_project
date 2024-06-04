@@ -8,6 +8,7 @@ public class PathFinding {
     final static int W=1; // Wall.
     final static int F=2; // Crossroads with food
     final static int E=3; // Empty crossroads
+
     private final int[][] board;
     private final int width;
     private final int height;
@@ -19,8 +20,14 @@ public class PathFinding {
     }
 
     public List<Node> findPath(int startX, int startY, int goalX, int goalY) {
+
+        if (!isWalkable(startX, startY) || !isWalkable(goalX, goalY)) {
+            return null;
+        }
+
         PriorityQueue<Node> openList = new PriorityQueue<>();
         Set<Node> closedList = new HashSet<>();
+
         Node startNode = new Node(startX, startY, null, 0, calculateHeuristic(startX, startY, goalX, goalY));
         openList.add(startNode);
 
@@ -58,7 +65,11 @@ public class PathFinding {
     private List<Node> getNeighbors(Node node) {
         List<Node> neighbors = new ArrayList<>();
 
-        int[][] directions = { {0, -1}, {0, 1}, {-1, 0}, {1, 0} };
+        int[][] directions = { {0, -1},
+                               {0, 1},
+                               {-1, 0},
+                               {1, 0} };
+
         for (int[] direction : directions) {
             int newX = node.x + direction[0];
             int newY = node.y + direction[1];
@@ -72,7 +83,7 @@ public class PathFinding {
     }
 
     private boolean isWalkable(int x, int y) {
-        return x >= 0 && x < width && y >= 0 && y < height && board[y][x] != W;
+        return x > 0 && x < width && y > 0 && y < height && board[y][x] != W;
     }
 
     private int calculateHeuristic(int x1, int y1, int x2, int y2) {
@@ -105,8 +116,21 @@ class Node implements Comparable<Node> {
     }
 
     @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        Node node = (Node) obj;
+        return x == node.x && y == node.y;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(x, y);
+    }
+
+    @Override
     public int compareTo(Node other) {
-        return Integer.compare(this.g + this.h, other.g + other.h);
+        return Integer.compare(this.getF(), other.getF());
     }
 
     public int getF() {

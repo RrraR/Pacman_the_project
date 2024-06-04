@@ -1,15 +1,16 @@
 package Characters;
 
-import Components.GameBoard;
 import javax.swing.*;
 import java.awt.*;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
-import static Components.GameBoard.getNumberOfPelletsLeft;
+import static Components.GameBoard.getNumberOfFoodsLeft;
 
 public class BlueGhost implements Runnable {
+
+    private final int startPositionX = 186;
+    private final int startPositionY = 209;
 
     private int panelX = 186;
     private int panelY = 209;
@@ -21,6 +22,7 @@ public class BlueGhost implements Runnable {
     private final int boardDimensions;
     private int currentGhostImageIndex;
     private int currentGhostOrientation;
+    private final Pacman pacman;
 
     private int nodeTargetX;
     private int nodeTargetY;
@@ -30,11 +32,13 @@ public class BlueGhost implements Runnable {
     private int pathIndex = 0;
     boolean inGame;
     private List<int[]> foodCells;
-    private final Object lock;
+    private final Object monitor;
+    private boolean ghostIsReleased;
 
-    public BlueGhost(int boardDimensions, int[][] board, boolean inGame, List<int[]> foodCells, Object lock){
+    public BlueGhost(int boardDimensions, int[][] board, Pacman pacman, boolean inGame, List<int[]> foodCells, Object monitor){
         this.board = board;
         this.boardDimensions = boardDimensions;
+        this.pacman = pacman;
         loadImages();
         this.nodeTargetX = panelX;
         this.nodeTargetY = panelY;
@@ -43,7 +47,8 @@ public class BlueGhost implements Runnable {
         this.pathfinding = new PathFinding(board);
         this.inGame = true;
         this.foodCells = foodCells;
-        this.lock = lock;
+        this.monitor = monitor;
+        ghostIsReleased = false;
     }
 
     public void drawBlueGhost(Graphics g){
@@ -83,27 +88,50 @@ public class BlueGhost implements Runnable {
     }
 
     public int getBlueGhostCordX(){
-        synchronized (lock) {
+        synchronized (monitor) {
             return panelX;
         }
     }
 
     public int getBlueGhostCordY() {
-        synchronized (lock) {
+        synchronized (monitor) {
             return panelY;
+        }
+    }
+
+    public void stopMovement(){
+        speed = 0;
+    }
+
+    public void resetPosition() {
+        synchronized (monitor) {
+            panelX = startPositionX;
+            panelY = startPositionY;
+            path = null;
+            pathIndex = 0;
+            currentGhostImageIndex = 0;
+            currentGhostOrientation = 1;
+            speed = 2;
+            ghostIsReleased = false;
         }
     }
 
     @Override
     public void run() {
         while (inGame){
-// todo possibly move the if to gameboard @run and start the thread when the condition is reached
-            if (foodCells.size() - getNumberOfPelletsLeft() >= 30){
-                int index = ThreadLocalRandom.current().nextInt(foodCells.size());
-                int[] randomCell = foodCells.get(index);
+            if (pacman.amountOfFoodConsumed >= getNumberOfFoodsLeft()/3){
+                if (ghostIsReleased){
+                    int index = ThreadLocalRandom.current().nextInt(foodCells.size());
+                    int[] randomCell = foodCells.get(index);
 
-                //TODO: possibly fix passing randomCell[1] * boardDimensions and randomCell[0] * boardDimensions
-                moveBlueGhost(randomCell[1] * boardDimensions, randomCell[0] * boardDimensions);
+                    //TODO: possibly fix passing randomCell[1] * boardDimensions and randomCell[0] * boardDimensions
+                    moveBlueGhost(randomCell[1] * boardDimensions, randomCell[0] * boardDimensions);
+                }else{
+                    ghostIsReleased = true;
+                    //todo fix passing coords like this
+                    moveBlueGhost(225, 153);
+                }
+
             }
 
             updateImageIndex();
@@ -112,7 +140,6 @@ public class BlueGhost implements Runnable {
                 Thread.sleep(30);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-//                inGame = false;
             }
         }
     }

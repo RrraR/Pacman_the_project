@@ -26,19 +26,19 @@ public class Pacman implements Runnable {
     private Image[] pacmanDeathImages;
     private boolean inGame;
     public int lives = 3;
+    public int amountOfFoodConsumed;
+    private int currentPacmanDeathImageIndex;
 
-    public OnDeathCallback deathCallback;
 
-
-    public Pacman(int boardDimensions, int[][] board, boolean inGame, OnDeathCallback deathCallback, Object lock){
+    public Pacman(int boardDimensions, int[][] board, boolean inGame, Object lock){
         this.board = board;
         this.boardDimensions = boardDimensions;
         loadImages();
         currentPacmanImageIndex = 0;
         currentPacmanOrientation = 1;
         this.inGame = true;
-        this.deathCallback = deathCallback;
         this.lock = lock;
+        amountOfFoodConsumed = 0;
     }
 
     public int getPacmanCordX(){
@@ -59,25 +59,50 @@ public class Pacman implements Runnable {
         }
     }
 
-    public void drawPacman(Graphics g){
-        switch (currentPacmanOrientation){
-            case 0:
-                g.drawImage(pacmanImagesUp[currentPacmanImageIndex], panelX, panelY, null);
-                break;
-            case 1:
-                g.drawImage(pacmanImagesRight[currentPacmanImageIndex], panelX, panelY, null);
-                break;
-            case 2:
-                g.drawImage(pacmanImagesDown[currentPacmanImageIndex], panelX, panelY, null);
-                break;
-            case 3:
-                g.drawImage(pacmanImagesLeft[currentPacmanImageIndex], panelX, panelY, null);
-                break;
+    public void drawPacman(Graphics g, boolean isDeathAnimation){
+        if (isDeathAnimation){
+            g.drawImage(pacmanDeathImages[currentPacmanDeathImageIndex], panelX, panelY, null);
+            updateDeathImageIndex();
+        }else {
+            switch (currentPacmanOrientation){
+                case 0:
+                    g.drawImage(pacmanImagesUp[currentPacmanImageIndex], panelX, panelY, null);
+                    break;
+                case 1:
+                    g.drawImage(pacmanImagesRight[currentPacmanImageIndex], panelX, panelY, null);
+                    break;
+                case 2:
+                    g.drawImage(pacmanImagesDown[currentPacmanImageIndex], panelX, panelY, null);
+                    break;
+                case 3:
+                    g.drawImage(pacmanImagesLeft[currentPacmanImageIndex], panelX, panelY, null);
+                    break;
+            }
+        }
+    }
+
+    public void pacmanDeathAnimation(Graphics g){
+        for (Image image: pacmanDeathImages){
+            g.drawImage(image, panelX, panelY, null);
+            try {
+                Thread.sleep(50);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+//            g.fillRect(panelX, panelY, 18, 18);
         }
     }
 
     public void updateImageIndex() {
         currentPacmanImageIndex = (currentPacmanImageIndex + 1) % 3;
+    }
+
+    public void updateDeathImageIndex() {
+        currentPacmanDeathImageIndex = (currentPacmanDeathImageIndex + 1) % 4;
+    }
+
+    public void updateAmountOfFoodEaten(){
+        amountOfFoodConsumed++;
     }
 //todo: fix usages of 1
 
@@ -111,6 +136,24 @@ public class Pacman implements Runnable {
             currentSpeedX = 0;
             currentSpeedY = initSpeedY;
             currentPacmanOrientation = 2;
+        }
+    }
+
+    public void stopMovement(){
+        currentSpeedX = 0;
+        currentSpeedY = 0;
+        currentPacmanDeathImageIndex = currentPacmanOrientation;
+    }
+
+    public void resetPosition() {
+        synchronized (lock) {
+            panelX = startPositionX;
+            panelY = startPositionY;
+            currentSpeedX = 3;
+            currentSpeedY = 0;
+            currentPacmanOrientation = 1;
+            currentPacmanImageIndex = 0;
+            amountOfFoodConsumed = 0;
         }
     }
 
@@ -184,13 +227,6 @@ public class Pacman implements Runnable {
             return true;
         }
 
-//       todo add ghost collision detection
-//        synchronized (lock) {
-//            if (deathCallback != null) {
-//                System.out.println("pacman collision ");
-//            }
-//        }
-
         return false;
     }
 
@@ -210,9 +246,9 @@ public class Pacman implements Runnable {
         }
 
         pacmanDeathImages[0] = pacmanImagesRight[1];
-        pacmanDeathImages[1] = pacmanImagesLeft[1];
-        pacmanDeathImages[2] = pacmanImagesUp[1];
-        pacmanDeathImages[3] = pacmanImagesDown[1];
+        pacmanDeathImages[1] = pacmanImagesUp[1];
+        pacmanDeathImages[2] = pacmanImagesDown[1];
+        pacmanDeathImages[3] = pacmanImagesLeft[1];
 
 
     }

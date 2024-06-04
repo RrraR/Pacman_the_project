@@ -6,6 +6,9 @@ import java.util.List;
 
 public class RedGhost implements Runnable {
 
+    private final int startPositionX = 225;
+    private final int startPositionY = 153;
+
     private int panelX = 225;
     private int panelY = 153;
     private Image[] redGhostImagesRight;
@@ -18,16 +21,17 @@ public class RedGhost implements Runnable {
     private int currentGhostOrientation;
     private int nodeTargetX;
     private int nodeTargetY;
-    private final int speed = 2;
+    private int speed = 2;
     private final Pacman pacman;
-    private final Object lock;
+    private final Object monitor;
 
     private PathFinding pathfinding;
     private List<Node> path;
     private int pathIndex = 0;
     boolean inGame;
+    private boolean ghostIsReleased;
 
-    public RedGhost(int boardDimensions, int[][] board, Pacman pacman, boolean inGame, Object lock){
+    public RedGhost(int boardDimensions, int[][] board, Pacman pacman, boolean inGame, Object monitor){
         this.board = board;
         this.boardDimensions = boardDimensions;
         loadImages();
@@ -38,7 +42,8 @@ public class RedGhost implements Runnable {
         this.nodeTargetY = panelY;
         this.pacman = pacman;
         this.inGame = true;
-        this.lock = lock;
+        this.monitor = monitor;
+        ghostIsReleased = false;
     }
 
     public void drawRedGhost(Graphics g){
@@ -78,70 +83,50 @@ public class RedGhost implements Runnable {
     }
 
     public int getRedGhostCordX(){
-        synchronized (lock) {
+        synchronized (monitor) {
             return panelX;
         }
     }
 
     public int getRedGhostCordY() {
-        synchronized (lock) {
+        synchronized (monitor) {
             return panelY;
         }
     }
 
-    private boolean checkCollisionWithPacman(int pacmanPosX, int pacmanPosY) {
-        // Implement your collision detection logic
-        return panelX/boardDimensions == pacmanPosX/boardDimensions && panelY/boardDimensions == pacmanPosY/boardDimensions; // Simplified example
+    public void stopMovement(){
+        speed = 0;
+    }
+
+    public void resetPosition() {
+        synchronized (monitor) {
+            panelX = startPositionX;
+            panelY = startPositionY;
+            path = null;
+            pathIndex = 0;
+            currentGhostImageIndex = 0;
+            currentGhostOrientation = 1;
+            speed = 2;
+            ghostIsReleased = false;
+        }
     }
 
     @Override
     public void run() {
+        inGame = true;
         while (inGame){
-            int pacmanPosX, pacmanPosY;
-            synchronized (lock){
-                pacmanPosX = pacman.getPacmanCordX();
-                pacmanPosY = pacman.getPacmanCordY();
-            }
+            if (ghostIsReleased){
+                int pacmanPosX, pacmanPosY;
+                synchronized (monitor){
+                    pacmanPosX = pacman.getPacmanCordX();
+                    pacmanPosY = pacman.getPacmanCordY();
+                }
 
-            if (checkCollisionWithPacman(pacmanPosX, pacmanPosY)) {
-                System.out.println("red ghost collision");
-                pacman.deathCallback.onPacmanDeath();
-                break; // Stop the ghost movement
+                moveRedGhost(pacmanPosX, pacmanPosY);
             }
-
-            if (path == null || pathIndex >= path.size() || (path.size()/5 <= pathIndex && path.size()/5 > 1)) {
-                path = pathfinding.findPath(panelX / boardDimensions, panelY / boardDimensions, pacmanPosX / boardDimensions, pacmanPosY / boardDimensions);
-                pathIndex = 0;
-            }
-
-            if (path != null && !path.isEmpty() && pathIndex <= path.size() - 1) {
-                Node nextNode = path.get(pathIndex);
-                nodeTargetX = nextNode.x * boardDimensions;
-                nodeTargetY = nextNode.y * boardDimensions;
-            }
-
-            if (panelX < nodeTargetX) {
-                panelX += speed;
-                currentGhostOrientation = 1;
-                if (panelX > nodeTargetX) panelX = nodeTargetX;
-            } else if (panelX > nodeTargetX) {
-                panelX -= speed;
-                currentGhostOrientation = 3;
-                if (panelX < nodeTargetX) panelX = nodeTargetX;
-            }
-
-            if (panelY < nodeTargetY) {
-                panelY += speed;
-                currentGhostOrientation = 2;
-                if (panelY > nodeTargetY) panelY = nodeTargetY;
-            } else if (panelY > nodeTargetY) {
-                panelY -= speed;
-                currentGhostOrientation = 0;
-                if (panelY < nodeTargetY) panelY = nodeTargetY;
-            }
-
-            if (panelX == nodeTargetX && panelY == nodeTargetY && path != null) {
-                pathIndex++;
+            else {
+                ghostIsReleased = true;
+                moveRedGhost(285, 153);
             }
 
             updateImageIndex();
@@ -152,6 +137,44 @@ public class RedGhost implements Runnable {
                 Thread.currentThread().interrupt();
 //                inGame = false;
             }
+
+        }
+    }
+
+    private void moveRedGhost(int targetX, int targetY){
+        if (path == null || pathIndex >= path.size() || (path.size()/5 <= pathIndex && path.size()/5 > 1)) {
+            path = pathfinding.findPath(panelX / boardDimensions, panelY / boardDimensions, targetX / boardDimensions, targetY / boardDimensions);
+            pathIndex = 0;
+        }
+
+        if (path != null && !path.isEmpty() && pathIndex <= path.size() - 1) {
+            Node nextNode = path.get(pathIndex);
+            nodeTargetX = nextNode.x * boardDimensions;
+            nodeTargetY = nextNode.y * boardDimensions;
+        }
+
+        if (panelX < nodeTargetX) {
+            panelX += speed;
+            currentGhostOrientation = 1;
+            if (panelX > nodeTargetX) panelX = nodeTargetX;
+        } else if (panelX > nodeTargetX) {
+            panelX -= speed;
+            currentGhostOrientation = 3;
+            if (panelX < nodeTargetX) panelX = nodeTargetX;
+        }
+
+        if (panelY < nodeTargetY) {
+            panelY += speed;
+            currentGhostOrientation = 2;
+            if (panelY > nodeTargetY) panelY = nodeTargetY;
+        } else if (panelY > nodeTargetY) {
+            panelY -= speed;
+            currentGhostOrientation = 0;
+            if (panelY < nodeTargetY) panelY = nodeTargetY;
+        }
+
+        if (panelX == nodeTargetX && panelY == nodeTargetY && path != null) {
+            pathIndex++;
         }
     }
 }

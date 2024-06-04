@@ -4,13 +4,16 @@ import javax.swing.*;
 import java.awt.*;
 import java.util.List;
 
-import static Components.GameBoard.getNumberOfPelletsLeft;
+import static Components.GameBoard.getNumberOfFoodsLeft;
 
 public class OrangeGhost implements Runnable {
     private Image[] orangeGhostImagesRight;
     private Image[] orangeGhostImagesLeft;
     private Image[] orangeGhostImagesUp;
     private Image[] orangeGhostImagesDown;
+
+    private final int startPositionX = 240;
+    private final int startPositionY = 209;
 
     private int panelX = 240;
     private int panelY = 209;
@@ -27,9 +30,10 @@ public class OrangeGhost implements Runnable {
     private final int[][] board;
     private boolean inGame;
     private List<int[]> foodCells;
-    private final Object lock;
+    private final Object monitor;
+    private boolean ghostIsReleased;
 
-    public OrangeGhost(int boardDimensions, int[][] board, Pacman pacman, boolean inGame, List<int[]> foodCells, Object lock){
+    public OrangeGhost(int boardDimensions, int[][] board, Pacman pacman, boolean inGame, List<int[]> foodCells, Object monitor){
         this.boardDimensions = boardDimensions;
         loadImages();
         currentGhostImageIndex = 0;
@@ -41,7 +45,8 @@ public class OrangeGhost implements Runnable {
         this.board = board;
         this.inGame = true;
         this.foodCells = foodCells;
-        this.lock = lock;
+        this.monitor = monitor;
+        ghostIsReleased = false;
     }
 
     public void drawPinkGhost(Graphics g){
@@ -80,38 +85,61 @@ public class OrangeGhost implements Runnable {
     }
 
     public int getOrangeGhostCordX(){
-        synchronized (lock) {
+        synchronized (monitor) {
             return panelX;
         }
     }
 
     public int getOrangeGhostCordY() {
-        synchronized (lock) {
+        synchronized (monitor) {
             return panelY;
+        }
+    }
+
+    public void stopMovement(){
+        speed = 0;
+    }
+
+    public void resetPosition() {
+        synchronized (monitor) {
+            panelX = startPositionX;
+            panelY = startPositionY;
+            path = null;
+            pathIndex = 0;
+            currentGhostImageIndex = 0;
+            currentGhostOrientation = 1;
+            speed = 2;
+            ghostIsReleased = false;
         }
     }
 
     @Override
     public void run() {
         while (inGame){
-// todo possibly move the if to gameboard @run and start the thread when the condition is reached
-            if (getNumberOfPelletsLeft() < (foodCells.size() * 2)/3){
-                int pacmanPosX, pacmanPosY;
+            if (pacman.amountOfFoodConsumed >= (getNumberOfFoodsLeft() * 2)/3){
+                if (ghostIsReleased){
+                    int pacmanPosX, pacmanPosY;
 
-                synchronized (lock){
-                    pacmanPosX = pacman.getPacmanCordX();
-                    pacmanPosY = pacman.getPacmanCordY();
+                    synchronized (monitor){
+                        pacmanPosX = pacman.getPacmanCordX();
+                        pacmanPosY = pacman.getPacmanCordY();
+                    }
+
+                    int targetGhostX = boardDimensions + 3;
+                    int targetGhostY = board.length * boardDimensions - boardDimensions * 2;
+
+                    if (Math.abs((pacmanPosX - panelX)/boardDimensions) > 8 || Math.abs((pacmanPosY - panelY)/boardDimensions) > 8){
+                        targetGhostX = pacmanPosX;
+                        targetGhostY = pacmanPosY;
+                    }
+
+                    moveOrangeGhost(targetGhostX, targetGhostY);
+                }else {
+                    ghostIsReleased = true;
+                    //todo fix passing coords like this
+                    moveOrangeGhost(225, 153);
                 }
 
-                int targetGhostX = boardDimensions + 3;
-                int targetGhostY = board.length * boardDimensions - boardDimensions * 2;
-
-                if (Math.abs((pacmanPosX - panelX)/boardDimensions) > 8 || Math.abs((pacmanPosY - panelY)/boardDimensions) > 8){
-                    targetGhostX = pacmanPosX;
-                    targetGhostY = pacmanPosY;
-                }
-
-                moveOrangeGhost(targetGhostX, targetGhostY);
             }
             updateImageIndex();
 
