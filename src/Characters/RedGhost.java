@@ -11,10 +11,10 @@ public class RedGhost implements Runnable {
 
     private int panelX = 225;
     private int panelY = 153;
-    private Image[] redGhostImagesRight;
-    private Image[] redGhostImagesLeft;
-    private Image[] redGhostImagesUp;
-    private Image[] redGhostImagesDown;
+    private ImageIcon[] redGhostImagesRight;
+    private ImageIcon[] redGhostImagesLeft;
+    private ImageIcon[] redGhostImagesUp;
+    private ImageIcon[] redGhostImagesDown;
     private final int[][] board;
     private final int boardDimensions;
     private int currentGhostImageIndex;
@@ -30,6 +30,8 @@ public class RedGhost implements Runnable {
     private int pathIndex = 0;
     boolean inGame;
     private boolean ghostIsReleased;
+    private JLabel redGhostLabel;
+    private volatile boolean paused = false;
 
     public RedGhost(int boardDimensions, int[][] board, Pacman pacman, boolean inGame, Object monitor){
         this.board = board;
@@ -41,80 +43,57 @@ public class RedGhost implements Runnable {
         this.nodeTargetX = panelX;
         this.nodeTargetY = panelY;
         this.pacman = pacman;
-        this.inGame = true;
+        this.inGame = inGame;
         this.monitor = monitor;
         ghostIsReleased = false;
+
+        redGhostLabel = new JLabel(redGhostImagesRight[0]);
+        redGhostLabel.setOpaque(true);
+        redGhostLabel.setBounds(startPositionX, startPositionY, 13, 13);
+        redGhostLabel.setBackground(Color.black);
     }
 
-    public void drawRedGhost(Graphics g){
-        switch (currentGhostOrientation){
-            case 0:
-                g.drawImage(redGhostImagesUp[currentGhostImageIndex], panelX + 3, panelY, null);
-                break;
-            case 1:
-                g.drawImage(redGhostImagesRight[currentGhostImageIndex], panelX, panelY + 3, null);
-                break;
-            case 2:
-                g.drawImage(redGhostImagesDown[currentGhostImageIndex], panelX + 3, panelY, null);
-                break;
-            case 3:
-                g.drawImage(redGhostImagesLeft[currentGhostImageIndex], panelX, panelY + 3, null);
-                break;
+    private void updateRedGhostIconLoop() {
+        while (inGame){
+            if (!paused){
+                switch (currentGhostOrientation) {
+                    case 0:
+                        redGhostLabel.setIcon(redGhostImagesUp[currentGhostImageIndex]);
+                        break;
+                    case 1:
+                        redGhostLabel.setIcon(redGhostImagesRight[currentGhostImageIndex]);
+                        break;
+                    case 2:
+                        redGhostLabel.setIcon(redGhostImagesDown[currentGhostImageIndex]);
+                        break;
+                    case 3:
+                        redGhostLabel.setIcon(redGhostImagesLeft[currentGhostImageIndex]);
+                        break;
+                }
+                updateImageIndex();
+            }
+            try {
+                Thread.sleep(40);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
         }
+
+    }
+
+    private void updateRedGhostLabelPosition(){
+        redGhostLabel.setBounds(panelX + 3, panelY + 3, 13, 13);
     }
 
     public void updateImageIndex() {
         currentGhostImageIndex = (currentGhostImageIndex + 1) % 2;
     }
 
-    private void loadImages(){
-
-        redGhostImagesRight = new Image[2];
-        redGhostImagesLeft = new Image[2];
-        redGhostImagesUp = new Image[2];
-        redGhostImagesDown = new Image[2];
-
-        for (int i = 0; i < 2; i++) {
-            redGhostImagesRight[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\blinky\\blinky-right-" + i + ".png").getImage();
-            redGhostImagesLeft[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\blinky\\blinky-left-" + i + ".png").getImage();
-            redGhostImagesUp[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\blinky\\blinky-up-" + i + ".png").getImage();
-            redGhostImagesDown[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\blinky\\blinky-down-" + i + ".png").getImage();
-        }
-    }
-
-    public int getRedGhostCordX(){
-        synchronized (monitor) {
-            return panelX;
-        }
-    }
-
-    public int getRedGhostCordY() {
-        synchronized (monitor) {
-            return panelY;
-        }
-    }
-
-    public void stopMovement(){
-        speed = 0;
-    }
-
-    public void resetPosition() {
-        synchronized (monitor) {
-            panelX = startPositionX;
-            panelY = startPositionY;
-            path = null;
-            pathIndex = 0;
-            currentGhostImageIndex = 0;
-            currentGhostOrientation = 1;
-            speed = 2;
-            ghostIsReleased = false;
-        }
-    }
-
     @Override
     public void run() {
-        inGame = true;
+        new Thread(this::updateRedGhostIconLoop).start();
         while (inGame){
+            checkPaused();
             if (ghostIsReleased){
                 int pacmanPosX, pacmanPosY;
                 synchronized (monitor){
@@ -128,8 +107,6 @@ public class RedGhost implements Runnable {
                 ghostIsReleased = true;
                 moveRedGhost(285, 153);
             }
-
-            updateImageIndex();
 
             try {
                 Thread.sleep(30);
@@ -175,6 +152,77 @@ public class RedGhost implements Runnable {
 
         if (panelX == nodeTargetX && panelY == nodeTargetY && path != null) {
             pathIndex++;
+        }
+
+        updateRedGhostLabelPosition();
+
+    }
+
+    public synchronized void pause() {
+        paused = true;
+    }
+
+    public synchronized void resume() {
+        paused = false;
+        notify();
+    }
+
+    private synchronized void checkPaused() {
+        while (paused) {
+            try {
+                wait();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+
+    public JLabel getRedGhostLabel() {
+        return redGhostLabel;
+    }
+
+    public int getRedGhostCordX(){
+        synchronized (monitor) {
+            return panelX;
+        }
+    }
+
+    public int getRedGhostCordY() {
+        synchronized (monitor) {
+            return panelY;
+        }
+    }
+
+    public void stopMovement(){
+        speed = 0;
+    }
+
+    public void resetPosition() {
+        panelX = startPositionX;
+        panelY = startPositionY;
+        path = null;
+        pathIndex = 0;
+        currentGhostImageIndex = 0;
+        currentGhostOrientation = 1;
+        speed = 2;
+        ghostIsReleased = false;
+        resume();
+        updateRedGhostLabelPosition();
+
+    }
+
+    private void loadImages(){
+
+        redGhostImagesRight = new ImageIcon[2];
+        redGhostImagesLeft = new ImageIcon[2];
+        redGhostImagesUp = new ImageIcon[2];
+        redGhostImagesDown = new ImageIcon[2];
+
+        for (int i = 0; i < 2; i++) {
+            redGhostImagesRight[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\blinky\\blinky-right-" + i + ".png");
+            redGhostImagesLeft[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\blinky\\blinky-left-" + i + ".png");
+            redGhostImagesUp[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\blinky\\blinky-up-" + i + ".png");
+            redGhostImagesDown[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\blinky\\blinky-down-" + i + ".png");
         }
     }
 }

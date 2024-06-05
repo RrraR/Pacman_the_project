@@ -7,10 +7,10 @@ import java.util.List;
 import static Components.GameBoard.getNumberOfFoodsLeft;
 
 public class OrangeGhost implements Runnable {
-    private Image[] orangeGhostImagesRight;
-    private Image[] orangeGhostImagesLeft;
-    private Image[] orangeGhostImagesUp;
-    private Image[] orangeGhostImagesDown;
+    private ImageIcon[] orangeGhostImagesRight;
+    private ImageIcon[] orangeGhostImagesLeft;
+    private ImageIcon[] orangeGhostImagesUp;
+    private ImageIcon[] orangeGhostImagesDown;
 
     private final int startPositionX = 240;
     private final int startPositionY = 209;
@@ -32,6 +32,8 @@ public class OrangeGhost implements Runnable {
     private List<int[]> foodCells;
     private final Object monitor;
     private boolean ghostIsReleased;
+    private JLabel orangeGhostLabel;
+    private volatile boolean paused = false;
 
     public OrangeGhost(int boardDimensions, int[][] board, Pacman pacman, boolean inGame, List<int[]> foodCells, Object monitor){
         this.boardDimensions = boardDimensions;
@@ -43,79 +45,59 @@ public class OrangeGhost implements Runnable {
         this.nodeTargetY = panelY;
         this.pacman = pacman;
         this.board = board;
-        this.inGame = true;
+        this.inGame = inGame;
         this.foodCells = foodCells;
         this.monitor = monitor;
         ghostIsReleased = false;
+        
+        orangeGhostLabel = new JLabel(orangeGhostImagesRight[0]);
+        orangeGhostLabel.setOpaque(true);
+        orangeGhostLabel.setBounds(startPositionX, startPositionY, 13, 13);
+        orangeGhostLabel.setBackground(Color.black);
     }
 
-    public void drawPinkGhost(Graphics g){
-        switch (currentGhostOrientation){
-            case 0:
-                g.drawImage(orangeGhostImagesUp[currentGhostImageIndex], panelX + 3, panelY, null);
-                break;
-            case 1:
-                g.drawImage(orangeGhostImagesRight[currentGhostImageIndex], panelX, panelY + 3, null);
-                break;
-            case 2:
-                g.drawImage(orangeGhostImagesDown[currentGhostImageIndex], panelX + 3, panelY, null);
-                break;
-            case 3:
-                g.drawImage(orangeGhostImagesLeft[currentGhostImageIndex], panelX, panelY + 3, null);
-                break;
+    private void updateOrangeGhostIconLoop() {
+        while (inGame){
+            if (!paused){
+                switch (currentGhostOrientation) {
+                    case 0:
+                        orangeGhostLabel.setIcon(orangeGhostImagesUp[currentGhostImageIndex]);
+                        break;
+                    case 1:
+                        orangeGhostLabel.setIcon(orangeGhostImagesRight[currentGhostImageIndex]);
+                        break;
+                    case 2:
+                        orangeGhostLabel.setIcon(orangeGhostImagesDown[currentGhostImageIndex]);
+                        break;
+                    case 3:
+                        orangeGhostLabel.setIcon(orangeGhostImagesLeft[currentGhostImageIndex]);
+                        break;
+                }
+            }
+            updateImageIndex();
+            try {
+                Thread.sleep(40);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
         }
+
+    }
+
+    private void updateOrangeGhostLabelPosition(){
+        orangeGhostLabel.setBounds(panelX + 3, panelY + 3, 13, 13);
     }
 
     public void updateImageIndex() {
         currentGhostImageIndex = (currentGhostImageIndex + 1) % 2;
     }
 
-    private void loadImages(){
-        orangeGhostImagesRight = new Image[2];
-        orangeGhostImagesLeft = new Image[2];
-        orangeGhostImagesUp = new Image[2];
-        orangeGhostImagesDown = new Image[2];
-
-        for (int i = 0; i < 2; i++) {
-            orangeGhostImagesRight[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\sue\\sue-right-" + i + ".png").getImage();
-            orangeGhostImagesLeft[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\sue\\sue-left-" + i + ".png").getImage();
-            orangeGhostImagesUp[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\sue\\sue-up-" + i + ".png").getImage();
-            orangeGhostImagesDown[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\sue\\sue-down-" + i + ".png").getImage();
-        }
-    }
-
-    public int getOrangeGhostCordX(){
-        synchronized (monitor) {
-            return panelX;
-        }
-    }
-
-    public int getOrangeGhostCordY() {
-        synchronized (monitor) {
-            return panelY;
-        }
-    }
-
-    public void stopMovement(){
-        speed = 0;
-    }
-
-    public void resetPosition() {
-        synchronized (monitor) {
-            panelX = startPositionX;
-            panelY = startPositionY;
-            path = null;
-            pathIndex = 0;
-            currentGhostImageIndex = 0;
-            currentGhostOrientation = 1;
-            speed = 2;
-            ghostIsReleased = false;
-        }
-    }
-
     @Override
     public void run() {
+        new Thread(this::updateOrangeGhostIconLoop).start();
+
         while (inGame){
+            checkPaused();
             if (pacman.amountOfFoodConsumed >= (getNumberOfFoodsLeft() * 2)/3){
                 if (ghostIsReleased){
                     int pacmanPosX, pacmanPosY;
@@ -139,9 +121,7 @@ public class OrangeGhost implements Runnable {
                     //todo fix passing coords like this
                     moveOrangeGhost(225, 153);
                 }
-
             }
-            updateImageIndex();
 
             try {
                 Thread.sleep(30);
@@ -191,6 +171,72 @@ public class OrangeGhost implements Runnable {
 
         if (panelX == nodeTargetX && panelY == nodeTargetY && path != null) {
             pathIndex++;
+        }
+
+        updateOrangeGhostLabelPosition();
+    }
+
+    public synchronized void pause() {
+        paused = true;
+    }
+
+    public synchronized void resume() {
+        paused = false;
+        notify();
+    }
+
+    private synchronized void checkPaused() {
+        while (paused) {
+            try {
+                wait();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+
+    public JLabel getOrangeGhostLabel() {
+        return orangeGhostLabel;
+    }
+
+    private void loadImages(){
+        orangeGhostImagesRight = new ImageIcon[2];
+        orangeGhostImagesLeft = new ImageIcon[2];
+        orangeGhostImagesUp = new ImageIcon[2];
+        orangeGhostImagesDown = new ImageIcon[2];
+
+        for (int i = 0; i < 2; i++) {
+            orangeGhostImagesRight[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\sue\\sue-right-" + i + ".png");
+            orangeGhostImagesLeft[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\sue\\sue-left-" + i + ".png");
+            orangeGhostImagesUp[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\sue\\sue-up-" + i + ".png");
+            orangeGhostImagesDown[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\sue\\sue-down-" + i + ".png");
+        }
+    }
+
+    public int getOrangeGhostCordX(){
+        synchronized (monitor) {
+            return panelX;
+        }
+    }
+
+    public int getOrangeGhostCordY() {
+        synchronized (monitor) {
+            return panelY;
+        }
+    }
+
+    public void resetPosition() {
+        synchronized (monitor) {
+            panelX = startPositionX;
+            panelY = startPositionY;
+            path = null;
+            pathIndex = 0;
+            currentGhostImageIndex = 0;
+            currentGhostOrientation = 1;
+            speed = 2;
+            ghostIsReleased = false;
+            resume();
+            updateOrangeGhostLabelPosition();
         }
     }
 }

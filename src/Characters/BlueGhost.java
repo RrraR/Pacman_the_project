@@ -14,10 +14,10 @@ public class BlueGhost implements Runnable {
 
     private int panelX = 186;
     private int panelY = 209;
-    private Image[] blueGhostImagesRight;
-    private Image[] blueGhostImagesLeft;
-    private Image[] blueGhostImagesUp;
-    private Image[] blueGhostImagesDown;
+    private ImageIcon[] blueGhostImagesRight;
+    private ImageIcon[] blueGhostImagesLeft;
+    private ImageIcon[] blueGhostImagesUp;
+    private ImageIcon[] blueGhostImagesDown;
     private final int[][] board;
     private final int boardDimensions;
     private int currentGhostImageIndex;
@@ -34,6 +34,9 @@ public class BlueGhost implements Runnable {
     private List<int[]> foodCells;
     private final Object monitor;
     private boolean ghostIsReleased;
+    private JLabel blueGhostLabel;
+    private volatile boolean paused = false;
+    
 
     public BlueGhost(int boardDimensions, int[][] board, Pacman pacman, boolean inGame, List<int[]> foodCells, Object monitor){
         this.board = board;
@@ -45,80 +48,58 @@ public class BlueGhost implements Runnable {
         currentGhostImageIndex = 0;
         currentGhostOrientation = 1;
         this.pathfinding = new PathFinding(board);
-        this.inGame = true;
+        this.inGame = inGame;
         this.foodCells = foodCells;
         this.monitor = monitor;
         ghostIsReleased = false;
+
+        blueGhostLabel = new JLabel(blueGhostImagesRight[0]);
+        blueGhostLabel.setOpaque(true);
+        blueGhostLabel.setBounds(startPositionX, startPositionY, 13, 13);
+        blueGhostLabel.setBackground(Color.black);
     }
 
-    public void drawBlueGhost(Graphics g){
-        switch (currentGhostOrientation){
-            case 0:
-                g.drawImage(blueGhostImagesUp[currentGhostImageIndex], panelX + 3, panelY, null);
-                break;
-            case 1:
-                g.drawImage(blueGhostImagesRight[currentGhostImageIndex], panelX, panelY + 3, null);
-                break;
-            case 2:
-                g.drawImage(blueGhostImagesDown[currentGhostImageIndex], panelX + 3, panelY, null);
-                break;
-            case 3:
-                g.drawImage(blueGhostImagesLeft[currentGhostImageIndex], panelX, panelY + 3, null);
-                break;
+    private void updateBlueGhostIconLoop() {
+        while (inGame){
+            if (!paused){
+                switch (currentGhostOrientation) {
+                    case 0:
+                        blueGhostLabel.setIcon(blueGhostImagesUp[currentGhostImageIndex]);
+                        break;
+                    case 1:
+                        blueGhostLabel.setIcon(blueGhostImagesRight[currentGhostImageIndex]);
+                        break;
+                    case 2:
+                        blueGhostLabel.setIcon(blueGhostImagesDown[currentGhostImageIndex]);
+                        break;
+                    case 3:
+                        blueGhostLabel.setIcon(blueGhostImagesLeft[currentGhostImageIndex]);
+                        break;
+                }
+                updateImageIndex();
+            }
+            try {
+                Thread.sleep(40);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
         }
+
+    }
+
+    private void updateBlueGhostLabelPosition(){
+        blueGhostLabel.setBounds(panelX + 3, panelY + 3, 13, 13);
     }
 
     public void updateImageIndex() {
         currentGhostImageIndex = (currentGhostImageIndex + 1) % 2;
     }
 
-    private void loadImages(){
-
-        blueGhostImagesRight = new Image[2];
-        blueGhostImagesLeft = new Image[2];
-        blueGhostImagesUp = new Image[2];
-        blueGhostImagesDown = new Image[2];
-
-        for (int i = 0; i < 2; i++) {
-            blueGhostImagesRight[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\inky\\inky-right-" + i + ".png").getImage();
-            blueGhostImagesLeft[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\inky\\inky-left-" + i + ".png").getImage();
-            blueGhostImagesUp[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\inky\\inky-up-" + i + ".png").getImage();
-            blueGhostImagesDown[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\inky\\inky-down-" + i + ".png").getImage();
-        }
-    }
-
-    public int getBlueGhostCordX(){
-        synchronized (monitor) {
-            return panelX;
-        }
-    }
-
-    public int getBlueGhostCordY() {
-        synchronized (monitor) {
-            return panelY;
-        }
-    }
-
-    public void stopMovement(){
-        speed = 0;
-    }
-
-    public void resetPosition() {
-        synchronized (monitor) {
-            panelX = startPositionX;
-            panelY = startPositionY;
-            path = null;
-            pathIndex = 0;
-            currentGhostImageIndex = 0;
-            currentGhostOrientation = 1;
-            speed = 2;
-            ghostIsReleased = false;
-        }
-    }
-
     @Override
     public void run() {
+        new Thread(this::updateBlueGhostIconLoop).start();
         while (inGame){
+            checkPaused();
             if (pacman.amountOfFoodConsumed >= getNumberOfFoodsLeft()/3){
                 if (ghostIsReleased){
                     int index = ThreadLocalRandom.current().nextInt(foodCells.size());
@@ -134,14 +115,60 @@ public class BlueGhost implements Runnable {
 
             }
 
-            updateImageIndex();
-
             try {
                 Thread.sleep(30);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
         }
+    }
+
+    public JLabel getBlueGhostLabel() {
+        return blueGhostLabel;
+    }
+
+    public synchronized void pause() {
+        paused = true;
+    }
+
+    public synchronized void resume() {
+        paused = false;
+        notify();
+    }
+
+    private synchronized void checkPaused() {
+        while (paused) {
+            try {
+                wait();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+
+    public int getBlueGhostCordX(){
+        synchronized (monitor) {
+            return panelX;
+        }
+    }
+
+    public int getBlueGhostCordY() {
+        synchronized (monitor) {
+            return panelY;
+        }
+    }
+
+    public void resetPosition() {
+        panelX = startPositionX;
+        panelY = startPositionY;
+        path = null;
+        pathIndex = 0;
+        currentGhostImageIndex = 0;
+        currentGhostOrientation = 1;
+        speed = 2;
+        ghostIsReleased = false;
+        resume();
+        updateBlueGhostLabelPosition();
     }
 
     private void moveBlueGhost(int targetX, int targetY){
@@ -182,6 +209,23 @@ public class BlueGhost implements Runnable {
 
         if (panelX == nodeTargetX && panelY == nodeTargetY && path != null) {
             pathIndex++;
+        }
+
+        updateBlueGhostLabelPosition();
+    }
+
+    private void loadImages(){
+
+        blueGhostImagesRight = new ImageIcon[2];
+        blueGhostImagesLeft = new ImageIcon[2];
+        blueGhostImagesUp = new ImageIcon[2];
+        blueGhostImagesDown = new ImageIcon[2];
+
+        for (int i = 0; i < 2; i++) {
+            blueGhostImagesRight[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\inky\\inky-right-" + i + ".png");
+            blueGhostImagesLeft[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\inky\\inky-left-" + i + ".png");
+            blueGhostImagesUp[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\inky\\inky-up-" + i + ".png");
+            blueGhostImagesDown[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\inky\\inky-down-" + i + ".png");
         }
     }
 }
