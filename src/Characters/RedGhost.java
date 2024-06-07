@@ -1,8 +1,14 @@
 package Characters;
 
+import Components.TimeTracker;
+import Components.Upgrade;
+import Components.UpgradeType;
+
 import javax.swing.*;
 import java.awt.*;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 public class RedGhost implements Runnable {
 
@@ -32,6 +38,9 @@ public class RedGhost implements Runnable {
     private boolean ghostIsReleased;
     private JLabel redGhostLabel;
     private volatile boolean paused = false;
+    private final TimeTracker timeTracker;
+    private List<Upgrade> upgrades;
+    private volatile boolean upgradeGenerated = false;
 
     public RedGhost(int boardDimensions, int[][] board, Pacman pacman, boolean inGame, Object monitor){
         this.board = board;
@@ -51,6 +60,9 @@ public class RedGhost implements Runnable {
         redGhostLabel.setOpaque(true);
         redGhostLabel.setBounds(startPositionX, startPositionY, 13, 13);
         redGhostLabel.setBackground(Color.black);
+
+        timeTracker = new TimeTracker();
+        upgrades = new ArrayList<>();
     }
 
     private void updateRedGhostIconLoop() {
@@ -89,9 +101,34 @@ public class RedGhost implements Runnable {
         currentGhostImageIndex = (currentGhostImageIndex + 1) % 2;
     }
 
+    private void generateUpgrade(){
+        if (timeTracker.getSecondsPassed() % 5 == 0 && !upgradeGenerated){
+            Random random = new Random();
+            if (random.nextInt(100) < 25) {
+                int x = panelX/boardDimensions;
+                int y = panelY/boardDimensions;
+                UpgradeType type = UpgradeType.values()[random.nextInt(UpgradeType.values().length)];
+                Upgrade upgrade = new Upgrade(x, y, type);
+                synchronized (monitor) {
+                    upgrades.add(upgrade);
+                }
+            }
+            upgradeGenerated = true;
+        } else if (timeTracker.getSecondsPassed() % 5 != 0){
+            upgradeGenerated = false;
+        }
+    }
+
+    public void removeProcessedUpgrades(){
+        synchronized (monitor) {
+            upgrades.clear();
+        }
+    }
+
     @Override
     public void run() {
         new Thread(this::updateRedGhostIconLoop).start();
+        timeTracker.start();
         while (inGame){
             checkPaused();
             if (ghostIsReleased){
@@ -102,6 +139,7 @@ public class RedGhost implements Runnable {
                 }
 
                 moveRedGhost(pacmanPosX, pacmanPosY);
+                generateUpgrade();
             }
             else {
                 ghostIsReleased = true;
@@ -112,7 +150,6 @@ public class RedGhost implements Runnable {
                 Thread.sleep(30);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-//                inGame = false;
             }
 
         }
@@ -177,6 +214,12 @@ public class RedGhost implements Runnable {
         }
     }
 
+    public List<Upgrade> getUpgrades() {
+        synchronized (monitor) {
+            return new ArrayList<>(upgrades);
+        }
+    }
+
     public JLabel getRedGhostLabel() {
         return redGhostLabel;
     }
@@ -193,10 +236,6 @@ public class RedGhost implements Runnable {
         }
     }
 
-    public void stopMovement(){
-        speed = 0;
-    }
-
     public void resetPosition() {
         panelX = startPositionX;
         panelY = startPositionY;
@@ -206,9 +245,9 @@ public class RedGhost implements Runnable {
         currentGhostOrientation = 1;
         speed = 2;
         ghostIsReleased = false;
-        resume();
+        upgrades.clear();
         updateRedGhostLabelPosition();
-
+        resume();
     }
 
     private void loadImages(){

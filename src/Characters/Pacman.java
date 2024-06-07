@@ -1,7 +1,11 @@
 package Characters;
 
+import Components.Upgrade;
+
 import javax.swing.*;
+import java.util.*;
 import java.awt.*;
+import java.util.List;
 
 public class Pacman implements Runnable {
 
@@ -10,7 +14,7 @@ public class Pacman implements Runnable {
 
     private final int[][] board;
     private final int boardDimensions;
-    private final Object lock;
+    private final Object monitor;
     private int panelX = 209;
     private int panelY = 266;
     private int currentSpeedX = 3; // Change in x-coordinate per frame
@@ -31,25 +35,40 @@ public class Pacman implements Runnable {
     private JLabel pacmanLabel;
     private final Thread pacmanAnimationThread;
     private volatile boolean paused = false;
+//    private List<Upgrade> upgrades;
+    public boolean isInvincible;
+    public int scoreMultiplier;
+//    private final TimeTracker timeTracker;
+//    private Upgrade currentUpgrade;
+    private List<Upgrade> activeUpgrades;
+    private volatile boolean isCheckActiveUpdatesThreadStarted = false;
 
-    public Pacman(int boardDimensions, int[][] board, boolean inGame, Object lock){
+//    private final Thread checkActiveUpdatesThread;
+
+    public Pacman(int boardDimensions, int[][] board, boolean inGame, Object monitor){
         this.board = board;
         this.boardDimensions = boardDimensions;
         loadImages();
         currentPacmanImageIndex = 0;
         currentPacmanOrientation = 1;
         this.inGame = inGame;
-        this.lock = lock;
+        this.monitor = monitor;
         amountOfFoodConsumed = 0;
         pacmanLabel = new JLabel(pacmanImagesRight[0]);
         pacmanLabel.setOpaque(true);
         pacmanLabel.setBounds(panelX, panelY, 13, 13);
         pacmanLabel.setBackground(Color.black);
         pacmanAnimationThread = new Thread(this::updatePacmanIconLoop);
+        isInvincible = false;
+        scoreMultiplier = 1;
+//        timeTracker = new TimeTracker();
+        activeUpgrades = Collections.synchronizedList(new ArrayList<>());
+//        currentUpgrade = null;
     }
 
     private void updatePacmanIconLoop() {
         while (inGame){
+            //todo this props should not look like this
             if (!paused){
                 switch (currentPacmanOrientation) {
                     case 0:
@@ -80,17 +99,16 @@ public class Pacman implements Runnable {
         pacmanLabel.setBounds(panelX, panelY, 13, 13);
     }
 
-    public void updateImageIndex() {
+    private void updateImageIndex() {
         currentPacmanImageIndex = (currentPacmanImageIndex + 1) % 3;
     }
 
     @Override
     public void run() {
         pacmanAnimationThread.start();
-        //todo this props should not look like this
         while (inGame){
             checkPaused();
-            synchronized (lock){
+            synchronized (monitor){
                 if (panelX - 13 > 0 && panelX < board.length * boardDimensions && panelX / boardDimensions < 22 && checkCollision()){
 //                    return;
                 }else {
@@ -106,6 +124,16 @@ public class Pacman implements Runnable {
 
                     recenterPacman();
                     updatePacmanLabelPosition();
+//                    System.out.println("checkActiveUpdatesThread " + checkActiveUpdatesThread.getState());
+                    if (!activeUpgrades.isEmpty() && !isCheckActiveUpdatesThreadStarted){
+                        synchronized (monitor){
+                            if (!isCheckActiveUpdatesThreadStarted){
+                                isCheckActiveUpdatesThreadStarted = true;
+                                new Thread(this::checkActiveUpgradesCollectionLoop).start();
+                            }
+                        }
+                    }
+
                 }
             }
 
@@ -113,6 +141,96 @@ public class Pacman implements Runnable {
                 Thread.sleep(30);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
+            }
+        }
+    }
+
+    private void removeUpgrade(Upgrade upgrade){
+        synchronized (monitor){
+            upgrade.stopUpgradeTimer();
+            switch (upgrade.getType()) {
+                case SPEED_BOOST:
+                    switch (currentPacmanOrientation) {
+                        case 0 -> currentSpeedY += 1;
+                        case 1 -> currentSpeedX -= 1;
+                        case 2 -> currentSpeedY -= 1;
+                        case 3 -> currentSpeedX += 1;
+                    }
+                    break;
+                case EXTRA_LIFE:
+                    break;
+                case INVINCIBILITY:
+                    isInvincible = false;
+                    break;
+                case SCORE_MULTIPLIER:
+                    scoreMultiplier = 1;
+                    break;
+                case GHOST_EATER:
+                    // Logic for GHOST_EATER
+                    break;
+            }
+        }
+    }
+
+    private void checkActiveUpgradesCollectionLoop() {
+        while (!activeUpgrades.isEmpty()) {
+            List<Upgrade> upgradesToRemove = new ArrayList<>();
+
+            synchronized (monitor) {
+                Iterator<Upgrade> iterator = activeUpgrades.iterator();
+                while (iterator.hasNext()) {
+                    Upgrade upgrade = iterator.next();
+                    if (upgrade.getTimeOnUpgrade() >= 5) {
+                        upgradesToRemove.add(upgrade);
+                    }
+                }
+            }
+
+            for (Upgrade upgrade : upgradesToRemove) {
+                removeUpgrade(upgrade);
+                synchronized (monitor) {
+                    activeUpgrades.remove(upgrade);
+                }
+            }
+
+            try {
+                Thread.sleep(30);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+
+        synchronized (monitor) {
+            isCheckActiveUpdatesThreadStarted = false;
+        }
+    }
+
+
+    public void applyUpgrade(Upgrade upgrade) {
+        synchronized (monitor) {
+            activeUpgrades.add(upgrade);
+            upgrade.startUpgradeTimer();
+            switch (upgrade.getType()) {
+                case SPEED_BOOST:
+                    switch (currentPacmanOrientation) {
+                        case 0 -> currentSpeedY -= 1;
+                        case 1 -> currentSpeedX += 1;
+                        case 2 -> currentSpeedY += 1;
+                        case 3 -> currentSpeedX -= 1;
+                    }
+                    break;
+                case EXTRA_LIFE:
+                    lives++;
+                    break;
+                case INVINCIBILITY:
+                    isInvincible = true;
+                    break;
+                case SCORE_MULTIPLIER:
+                    scoreMultiplier = 2;
+                    break;
+                case GHOST_EATER:
+                    // Logic for GHOST_EATER
+                    break;
             }
         }
     }
@@ -142,15 +260,10 @@ public class Pacman implements Runnable {
 
     public void deathAnimationLoop() {
         currentPacmanDeathImageIndex = currentPacmanOrientation;
-//        System.out.println("pacmanAnimationThread " + pacmanAnimationThread.getState());
-
         for (int i = 0; i < 4; i++) {
             try {
                 pacmanLabel.setIcon(pacmanDeathImages[currentPacmanDeathImageIndex]);
                 updateDeathImageIndex();
-
-//                System.out.println("pacman death");
-
                 Thread.sleep(200);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
@@ -163,19 +276,19 @@ public class Pacman implements Runnable {
     }
 
     public int getPacmanCordX(){
-        synchronized (lock) {
+        synchronized (monitor) {
             return panelX;
         }
     }
 
     public int getPacmanCordY() {
-        synchronized (lock) {
+        synchronized (monitor) {
             return panelY;
         }
     }
 
     public int getPacmanOrientation(){
-        synchronized (lock) {
+        synchronized (monitor) {
             return currentPacmanOrientation;
         }
     }
@@ -217,13 +330,8 @@ public class Pacman implements Runnable {
         }
     }
 
-    public void stopMovement(){
-        currentSpeedX = 0;
-        currentSpeedY = 0;
-    }
-
     public void resetPosition() {
-        synchronized (lock) {
+        synchronized (monitor) {
             panelX = startPositionX;
             panelY = startPositionY;
             currentSpeedX = 3;
@@ -231,6 +339,8 @@ public class Pacman implements Runnable {
             currentPacmanOrientation = 1;
             currentPacmanImageIndex = 0;
             amountOfFoodConsumed = 0;
+            activeUpgrades.clear();
+            updatePacmanLabelPosition();
             resume();
         }
     }

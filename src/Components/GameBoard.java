@@ -14,6 +14,7 @@ public class GameBoard extends JPanel implements KeyListener, Runnable {
     final static int F=2; // Crossroads with food
     final static int E=3; // Empty crossroads
     final static int D=4; // Door crossroad
+    final static int U=5; // Upgrade crossroad
 
     public static int board[][] = {
         //-----------------------X---H-------------------------//
@@ -56,6 +57,7 @@ public class GameBoard extends JPanel implements KeyListener, Runnable {
     private final PinkGhost pinkGhost;
     private final BlueGhost blueGhost;
     private final OrangeGhost orangeGhost;
+    private final TimeTracker timeTracker;
     private final Thread pacmanThread;
     private final Thread redGhostThread;
     private final Thread pinkGhostThread;
@@ -70,6 +72,7 @@ public class GameBoard extends JPanel implements KeyListener, Runnable {
     private int mapWidth;
     private JLayeredPane multiBoard;
     private JPanel background;
+    private List<Upgrade> upgrades;
 
 
     public GameBoard() {
@@ -78,9 +81,11 @@ public class GameBoard extends JPanel implements KeyListener, Runnable {
         this.setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
         this.setBackground(Color.black);
         foodCells = new ArrayList<>();
-        countAllFood();
+        getAllFoodCells();
         inGame = true;
         foodImage = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\food13\\food2.png");
+        timeTracker = new TimeTracker();
+        upgrades = new ArrayList<>();
 
 //        this.setPreferredSize(new Dimension(mapHeight, mapWidth));
 
@@ -142,7 +147,7 @@ public class GameBoard extends JPanel implements KeyListener, Runnable {
         return background;
     }
 
-    private void countAllFood(){
+    private void getAllFoodCells(){
         for (int i = 0; i < board.length; i++) {
             for (int j = 0; j < board[0].length; j++) {
                 if (board[i][j] == F) {
@@ -174,23 +179,78 @@ public class GameBoard extends JPanel implements KeyListener, Runnable {
         }
     }
 
-    private void updateFoodCells(){
+    private void checkFoodAndUpgradesCells(){
         int pacmanPosX, pacmanPosY;
+        List<Upgrade> redGhostUpgrades, pinkGhostUpgrades, blueGhostUpgrades, orangeGhostsUpgrades;
         synchronized (monitor){
             pacmanPosX = pacman.getPacmanCordX();
             pacmanPosY = pacman.getPacmanCordY();
+            redGhostUpgrades = redGhost.getUpgrades();
+            pinkGhostUpgrades = pinkGhost.getUpgrades();
+            blueGhostUpgrades = blueGhost.getUpgrades();
+            orangeGhostsUpgrades = orangeGhost.getUpgrades();
+        }
+
+        if (!redGhostUpgrades.isEmpty()){
+            for (Upgrade upgrade : redGhostUpgrades) {
+                upgrades.add(upgrade);
+                board[upgrade.getY()][upgrade.getX()] = U;
+                cells[upgrade.getY()][upgrade.getX()].setIcon(upgrade.getIcon());
+            }
+            redGhost.removeProcessedUpgrades();
+        }
+
+        if (!pinkGhostUpgrades.isEmpty()){
+            for (Upgrade upgrade : pinkGhostUpgrades) {
+                upgrades.add(upgrade);
+                board[upgrade.getY()][upgrade.getX()] = U;
+                cells[upgrade.getY()][upgrade.getX()].setIcon(upgrade.getIcon());
+            }
+            pinkGhost.removeProcessedUpgrades();
+        }
+
+        if (!blueGhostUpgrades.isEmpty()){
+            for (Upgrade upgrade : blueGhostUpgrades) {
+                upgrades.add(upgrade);
+                board[upgrade.getY()][upgrade.getX()] = U;
+                cells[upgrade.getY()][upgrade.getX()].setIcon(upgrade.getIcon());
+            }
+            blueGhost.removeProcessedUpgrades();
+        }
+
+        if (!orangeGhostsUpgrades.isEmpty()){
+            for (Upgrade upgrade : orangeGhostsUpgrades) {
+                upgrades.add(upgrade);
+                board[upgrade.getY()][upgrade.getX()] = U;
+                cells[upgrade.getY()][upgrade.getX()].setIcon(upgrade.getIcon());
+            }
+            orangeGhost.removeProcessedUpgrades();
         }
 
         if (board[pacmanPosY / boardDimensions][pacmanPosX / boardDimensions] == F) {
             board[pacmanPosY / boardDimensions][pacmanPosX / boardDimensions] = E;
             cells[pacmanPosY / boardDimensions][pacmanPosX / boardDimensions].setIcon(null);
-            updateScore(10);
+            updateScore(10 * pacman.scoreMultiplier);
             pacman.updateAmountOfFoodEaten();
+        } else if (board[pacmanPosY / boardDimensions][pacmanPosX / boardDimensions] == U) {
+            Upgrade upgrade = getUpgrade( pacmanPosX / boardDimensions, pacmanPosY / boardDimensions);
+            if (upgrade != null){
+                board[pacmanPosY / boardDimensions][pacmanPosX / boardDimensions] = E;
+                cells[pacmanPosY / boardDimensions][pacmanPosX / boardDimensions].setIcon(null);
+                updateScore(20 * pacman.scoreMultiplier);
+                pacman.applyUpgrade(upgrade);
+                upgrades.remove(upgrade);
+            }
         }
     }
 
-    private void dropPowerUp(){
-
+    private Upgrade getUpgrade(int x, int y){
+        for (Upgrade upgrade : upgrades) {
+            if (upgrade.getX() == x && upgrade.getY() == y){
+                return upgrade;
+            }
+        }
+        return null;
     }
 
 
@@ -206,11 +266,19 @@ public class GameBoard extends JPanel implements KeyListener, Runnable {
         pinkGhostThread.start();
         blueGhostThread.start();
         orangeGhostThread.start();
+        timeTracker.start();
 
         new Thread(this::ghostCollisionDetectionLoop).start();
 
         while (inGame){
-            updateFoodCells();
+            checkFoodAndUpgradesCells();
+//            System.out.println("pacmanThread.getState() " + pacmanThread.getState());
+//            System.out.println("redGhostThread.getState() " + redGhostThread.getState());
+//            System.out.println("pinkGhostThread.getState() " + pinkGhostThread.getState());
+//            System.out.println("blueGhostThread.getState() " + blueGhostThread.getState());
+//            System.out.println("orangeGhostThread.getState() " + orangeGhostThread.getState());
+//            System.out.println();
+
             try {
                 Thread.sleep(30);
             } catch (InterruptedException e) {
@@ -223,41 +291,43 @@ public class GameBoard extends JPanel implements KeyListener, Runnable {
     private void ghostCollisionDetectionLoop() {
         while (inGame){
             synchronized (monitor){
-                //todo possibly update this so the overlap between a ghost and pacman during collision is not as crazy.... crazy? i was crazy once. they locked me in a room, a rubber room a rubber room with rats and the rats make me crazy. crazy? i was crazy once
-                if (isCollision(pacman.getPacmanCordX(), pacman.getPacmanCordY(), redGhost.getRedGhostCordX(), redGhost.getRedGhostCordY()) ||
-                        isCollision(pacman.getPacmanCordX(), pacman.getPacmanCordY(), pinkGhost.getPinkGhostCordX(), pinkGhost.getPinkGhostCordY()) ||
-                        isCollision(pacman.getPacmanCordX(), pacman.getPacmanCordY(), blueGhost.getBlueGhostCordX(), blueGhost.getBlueGhostCordY()) ||
-                        isCollision(pacman.getPacmanCordX(), pacman.getPacmanCordY(), orangeGhost.getOrangeGhostCordX(), orangeGhost.getOrangeGhostCordY())) {
+                if (!pacman.isInvincible) {
+                    //todo possibly update this so the overlap between a ghost and pacman during collision is not as crazy.... crazy? i was crazy once. they locked me in a room, a rubber room a rubber room with rats and the rats make me crazy. crazy? i was crazy once
+                    if (isCollision(pacman.getPacmanCordX(), pacman.getPacmanCordY(), redGhost.getRedGhostCordX(), redGhost.getRedGhostCordY()) ||
+                            isCollision(pacman.getPacmanCordX(), pacman.getPacmanCordY(), pinkGhost.getPinkGhostCordX(), pinkGhost.getPinkGhostCordY()) ||
+                            isCollision(pacman.getPacmanCordX(), pacman.getPacmanCordY(), blueGhost.getBlueGhostCordX(), blueGhost.getBlueGhostCordY()) ||
+                            isCollision(pacman.getPacmanCordX(), pacman.getPacmanCordY(), orangeGhost.getOrangeGhostCordX(), orangeGhost.getOrangeGhostCordY())) {
 
-                    stopCharacterMovement();
+                        stopCharacterMovement();
 
-                    Thread pacmanDeathAnimationThread = new Thread(new Runnable() {
-                        @Override
-                        public void run() {
-                           pacman.deathAnimationLoop();
-                        }
-                    });
-                    pacmanDeathAnimationThread.start();
-                    try {
-                        pacmanDeathAnimationThread.join();
-
-                    } catch (InterruptedException e) {
-                        throw new RuntimeException(e);
-                    }
-
-                    pacman.lives--;
-
-                    if (pacman.lives <= 0) {
-                        inGame = false;
-                    } else {
-                        resetPositions();
+                        Thread pacmanDeathAnimationThread = new Thread(new Runnable() {
+                            @Override
+                            public void run() {
+                                pacman.deathAnimationLoop();
+                            }
+                        });
+                        pacmanDeathAnimationThread.start();
                         try {
-                            Thread.sleep(500);
+                            pacmanDeathAnimationThread.join();
+
                         } catch (InterruptedException e) {
                             throw new RuntimeException(e);
                         }
-                    }
 
+                        pacman.lives--;
+
+                        if (pacman.lives <= 0) {
+                            inGame = false;
+                        } else {
+                            resetPositions();
+                            try {
+                                Thread.sleep(500);
+                            } catch (InterruptedException e) {
+                                throw new RuntimeException(e);
+                            }
+                        }
+
+                    }
                 }
             }
         }

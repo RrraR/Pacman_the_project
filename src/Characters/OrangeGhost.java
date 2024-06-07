@@ -1,8 +1,14 @@
 package Characters;
 
+import Components.TimeTracker;
+import Components.Upgrade;
+import Components.UpgradeType;
+
 import javax.swing.*;
 import java.awt.*;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 import static Components.GameBoard.getNumberOfFoodsLeft;
 
@@ -34,6 +40,9 @@ public class OrangeGhost implements Runnable {
     private boolean ghostIsReleased;
     private JLabel orangeGhostLabel;
     private volatile boolean paused = false;
+    private final TimeTracker timeTracker;
+    private List<Upgrade> upgrades;
+    private volatile boolean upgradeGenerated = false;
 
     public OrangeGhost(int boardDimensions, int[][] board, Pacman pacman, boolean inGame, List<int[]> foodCells, Object monitor){
         this.boardDimensions = boardDimensions;
@@ -54,6 +63,9 @@ public class OrangeGhost implements Runnable {
         orangeGhostLabel.setOpaque(true);
         orangeGhostLabel.setBounds(startPositionX, startPositionY, 13, 13);
         orangeGhostLabel.setBackground(Color.black);
+
+        timeTracker = new TimeTracker();
+        upgrades = new ArrayList<>();
     }
 
     private void updateOrangeGhostIconLoop() {
@@ -92,10 +104,34 @@ public class OrangeGhost implements Runnable {
         currentGhostImageIndex = (currentGhostImageIndex + 1) % 2;
     }
 
+    private void generateUpgrade(){
+        if (timeTracker.getSecondsPassed() % 5 == 0 && !upgradeGenerated){
+            Random random = new Random();
+            if (random.nextInt(100) < 25) {
+                int x = panelX/boardDimensions;
+                int y = panelY/boardDimensions;
+                UpgradeType type = UpgradeType.values()[random.nextInt(UpgradeType.values().length)];
+                Upgrade upgrade = new Upgrade(x, y, type);
+                synchronized (monitor) {
+                    upgrades.add(upgrade);
+                }
+            }
+            upgradeGenerated = true;
+        } else if (timeTracker.getSecondsPassed() % 5 != 0){
+            upgradeGenerated = false;
+        }
+    }
+
+    public void removeProcessedUpgrades(){
+        synchronized (monitor) {
+            upgrades.clear();
+        }
+    }
+
     @Override
     public void run() {
         new Thread(this::updateOrangeGhostIconLoop).start();
-
+        timeTracker.start();
         while (inGame){
             checkPaused();
             if (pacman.amountOfFoodConsumed >= (getNumberOfFoodsLeft() * 2)/3){
@@ -116,6 +152,7 @@ public class OrangeGhost implements Runnable {
                     }
 
                     moveOrangeGhost(targetGhostX, targetGhostY);
+                    generateUpgrade();
                 }else {
                     ghostIsReleased = true;
                     //todo fix passing coords like this
@@ -127,7 +164,6 @@ public class OrangeGhost implements Runnable {
                 Thread.sleep(30);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-//                inGame = false;
             }
         }
     }
@@ -195,6 +231,12 @@ public class OrangeGhost implements Runnable {
         }
     }
 
+    public List<Upgrade> getUpgrades() {
+        synchronized (monitor) {
+            return new ArrayList<>(upgrades);
+        }
+    }
+
     public JLabel getOrangeGhostLabel() {
         return orangeGhostLabel;
     }
@@ -235,8 +277,9 @@ public class OrangeGhost implements Runnable {
             currentGhostOrientation = 1;
             speed = 2;
             ghostIsReleased = false;
-            resume();
+            upgrades.clear();
             updateOrangeGhostLabelPosition();
+            resume();
         }
     }
 }

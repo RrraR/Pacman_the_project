@@ -1,8 +1,14 @@
 package Characters;
 
+import Components.TimeTracker;
+import Components.Upgrade;
+import Components.UpgradeType;
+
 import javax.swing.*;
 import java.awt.*;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static Components.GameBoard.getNumberOfFoodsLeft;
@@ -36,6 +42,9 @@ public class BlueGhost implements Runnable {
     private boolean ghostIsReleased;
     private JLabel blueGhostLabel;
     private volatile boolean paused = false;
+    private final TimeTracker timeTracker;
+    private List<Upgrade> upgrades;
+    private volatile boolean upgradeGenerated = false;
     
 
     public BlueGhost(int boardDimensions, int[][] board, Pacman pacman, boolean inGame, List<int[]> foodCells, Object monitor){
@@ -57,6 +66,9 @@ public class BlueGhost implements Runnable {
         blueGhostLabel.setOpaque(true);
         blueGhostLabel.setBounds(startPositionX, startPositionY, 13, 13);
         blueGhostLabel.setBackground(Color.black);
+
+        timeTracker = new TimeTracker();
+        upgrades = new ArrayList<>();
     }
 
     private void updateBlueGhostIconLoop() {
@@ -95,9 +107,34 @@ public class BlueGhost implements Runnable {
         currentGhostImageIndex = (currentGhostImageIndex + 1) % 2;
     }
 
+    private void generateUpgrade(){
+        if (timeTracker.getSecondsPassed() % 5 == 0 && !upgradeGenerated){
+            Random random = new Random();
+            if (random.nextInt(100) < 25) {
+                int x = panelX/boardDimensions;
+                int y = panelY/boardDimensions;
+                UpgradeType type = UpgradeType.values()[random.nextInt(UpgradeType.values().length)];
+                Upgrade upgrade = new Upgrade(x, y, type);
+                synchronized (monitor) {
+                    upgrades.add(upgrade);
+                }
+            }
+            upgradeGenerated = true;
+        } else if (timeTracker.getSecondsPassed() % 5 != 0){
+            upgradeGenerated = false;
+        }
+    }
+
+    public void removeProcessedUpgrades(){
+        synchronized (monitor) {
+            upgrades.clear();
+        }
+    }
+
     @Override
     public void run() {
         new Thread(this::updateBlueGhostIconLoop).start();
+        timeTracker.start();
         while (inGame){
             checkPaused();
             if (pacman.amountOfFoodConsumed >= getNumberOfFoodsLeft()/3){
@@ -107,6 +144,7 @@ public class BlueGhost implements Runnable {
 
                     //TODO: possibly fix passing randomCell[1] * boardDimensions and randomCell[0] * boardDimensions
                     moveBlueGhost(randomCell[1] * boardDimensions, randomCell[0] * boardDimensions);
+                    generateUpgrade();
                 }else{
                     ghostIsReleased = true;
                     //todo fix passing coords like this
@@ -146,6 +184,12 @@ public class BlueGhost implements Runnable {
         }
     }
 
+    public List<Upgrade> getUpgrades() {
+        synchronized (monitor) {
+            return new ArrayList<>(upgrades);
+        }
+    }
+
     public int getBlueGhostCordX(){
         synchronized (monitor) {
             return panelX;
@@ -167,8 +211,9 @@ public class BlueGhost implements Runnable {
         currentGhostOrientation = 1;
         speed = 2;
         ghostIsReleased = false;
-        resume();
+        upgrades.clear();
         updateBlueGhostLabelPosition();
+        resume();
     }
 
     private void moveBlueGhost(int targetX, int targetY){

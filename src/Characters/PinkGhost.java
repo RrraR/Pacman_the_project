@@ -1,8 +1,14 @@
 package Characters;
 
+import Components.TimeTracker;
+import Components.Upgrade;
+import Components.UpgradeType;
+
 import javax.swing.*;
 import java.awt.*;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 public class PinkGhost implements Runnable {
 
@@ -32,6 +38,9 @@ public class PinkGhost implements Runnable {
     private boolean ghostIsReleased;
     private JLabel pinkGhostLabel;
     private volatile boolean paused = false;
+    private final TimeTracker timeTracker;
+    private List<Upgrade> upgrades;
+    private volatile boolean upgradeGenerated = false;
 
 
     public PinkGhost(int boardDimensions, int[][] board, Pacman pacman, boolean inGame, Object monitor){
@@ -52,6 +61,9 @@ public class PinkGhost implements Runnable {
         pinkGhostLabel.setOpaque(true);
         pinkGhostLabel.setBounds(startPositionX, startPositionY, 13, 13);
         pinkGhostLabel.setBackground(Color.black);
+
+        timeTracker = new TimeTracker();
+        upgrades = new ArrayList<>();
     }
 
     private void updatePinkGhostIconLoop() {
@@ -90,9 +102,34 @@ public class PinkGhost implements Runnable {
         currentGhostImageIndex = (currentGhostImageIndex + 1) % 2;
     }
 
+    private void generateUpgrade(){
+        if (timeTracker.getSecondsPassed() % 5 == 0 && !upgradeGenerated){
+            Random random = new Random();
+            if (random.nextInt(100) < 25) {
+                int x = panelX/boardDimensions;
+                int y = panelY/boardDimensions;
+                UpgradeType type = UpgradeType.values()[random.nextInt(UpgradeType.values().length)];
+                Upgrade upgrade = new Upgrade(x, y, type);
+                synchronized (monitor) {
+                    upgrades.add(upgrade);
+                }
+            }
+            upgradeGenerated = true;
+        } else if (timeTracker.getSecondsPassed() % 5 != 0){
+            upgradeGenerated = false;
+        }
+    }
+
+    public void removeProcessedUpgrades(){
+        synchronized (monitor) {
+            upgrades.clear();
+        }
+    }
+
     @Override
     public void run() {
         new Thread(this::updatePinkGhostIconLoop).start();
+        timeTracker.start();
         while (inGame){
             checkPaused();
             if (ghostIsReleased){
@@ -106,18 +143,18 @@ public class PinkGhost implements Runnable {
 
                 int[] target = getGhostTarget(pacmanPosX, pacmanPosY, pacmanOrientation);
                 movePinkGhost(target[0], target[1]);
+                generateUpgrade();
             }
             else {
                 //todo fix passing coords like this
-                movePinkGhost(225, 153);
                 ghostIsReleased = true;
+                movePinkGhost(225, 153);
             }
 
             try {
                 Thread.sleep(30);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-//                inGame = false;
             }
         }
 
@@ -126,10 +163,6 @@ public class PinkGhost implements Runnable {
     private void movePinkGhost(int targetX, int targetY){
         if (path == null || pathIndex >= path.size() || (path.size()/6 <= pathIndex && path.size()/6 > 1)) {
             path = pathfinding.findPath(panelX / boardDimensions, panelY / boardDimensions, targetX / boardDimensions, targetY / boardDimensions);
-//            for (Node node: path) {
-//                System.out.println("Node " + node.x + " " + node.y);
-//            }
-//            System.out.println("Pathindex " + pathIndex);
             pathIndex = 0;
         }
 
@@ -185,26 +218,14 @@ public class PinkGhost implements Runnable {
         }
     }
 
+    public List<Upgrade> getUpgrades() {
+        synchronized (monitor) {
+            return new ArrayList<>(upgrades);
+        }
+    }
+
     public JLabel getPinkGhostLabel() {
         return pinkGhostLabel;
-    }
-
-    public void stopMovement(){
-        speed = 0;
-    }
-
-    private void loadImages(){
-        pinkGhostImagesRight = new ImageIcon[2];
-        pinkGhostImagesLeft = new ImageIcon[2];
-        pinkGhostImagesUp = new ImageIcon[2];
-        pinkGhostImagesDown = new ImageIcon[2];
-
-        for (int i = 0; i < 2; i++) {
-            pinkGhostImagesRight[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\pinky\\pinky-right-" + i + ".png");
-            pinkGhostImagesLeft[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\pinky\\pinky-left-" + i + ".png");
-            pinkGhostImagesUp[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\pinky\\pinky-up-" + i + ".png");
-            pinkGhostImagesDown[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\pinky\\pinky-down-" + i + ".png");
-        }
     }
 
     public int getPinkGhostCordX(){
@@ -228,8 +249,9 @@ public class PinkGhost implements Runnable {
         currentGhostOrientation = 1;
         speed = 2;
         ghostIsReleased = false;
-        resume();
+        upgrades.clear();
         updatePinkGhostLabelPosition();
+        resume();
     }
 
     private int[] getGhostTarget(int pacmanPosX, int pacmanPosY, int pacmanOrientation){
@@ -275,5 +297,19 @@ public class PinkGhost implements Runnable {
 
         return targetCell;
 
+    }
+
+    private void loadImages(){
+        pinkGhostImagesRight = new ImageIcon[2];
+        pinkGhostImagesLeft = new ImageIcon[2];
+        pinkGhostImagesUp = new ImageIcon[2];
+        pinkGhostImagesDown = new ImageIcon[2];
+
+        for (int i = 0; i < 2; i++) {
+            pinkGhostImagesRight[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\pinky\\pinky-right-" + i + ".png");
+            pinkGhostImagesLeft[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\pinky\\pinky-left-" + i + ".png");
+            pinkGhostImagesUp[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\pinky\\pinky-up-" + i + ".png");
+            pinkGhostImagesDown[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\pinky\\pinky-down-" + i + ".png");
+        }
     }
 }
