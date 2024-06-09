@@ -30,4 +30,8 @@ public class TimeTracker extends Thread {
     public int getSecondsPassed() {
         return secondsPassed;
     }
+
+    public void resetTimePassed(){
+        secondsPassed = 0;
+    }
 }

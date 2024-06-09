@@ -12,9 +12,10 @@ import java.util.List;
 public class GameBoard extends JPanel implements KeyListener, Runnable {
     final static int W=1; // Wall.
     final static int F=2; // Crossroads with food
-    final static int E=3; // Empty crossroads
-    final static int D=4; // Door crossroad
-    final static int U=5; // Upgrade crossroad
+    final static int E=3; // Empty space
+    final static int D=4; // Door space
+    final static int U=5; // Ghost Upgrade space
+    final static int P=6; // Power Pellet
 
     public static int board[][] = {
         //-----------------------X---H-------------------------//
@@ -25,7 +26,7 @@ public class GameBoard extends JPanel implements KeyListener, Runnable {
         {W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W},
         {W,F,F,F,F,F,F,F,F,F,F,W,F,F,F,F,F,F,F,F,F,F,W},
         {W,F,W,W,W,F,W,W,W,W,F,W,F,W,W,W,W,F,W,W,W,F,W},
-        {W,F,W,W,W,F,W,W,W,W,F,W,F,W,W,W,W,F,W,W,W,F,W},
+        {W,P,W,W,W,F,W,W,W,W,F,W,F,W,W,W,W,F,W,W,W,P,W},
         {W,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,W},
         {W,F,W,W,W,F,W,F,W,W,W,W,W,W,W,F,W,F,W,W,W,F,W},
         {W,F,F,F,F,F,W,F,F,F,F,W,F,F,F,F,W,F,F,F,F,F,W},
@@ -40,7 +41,7 @@ public class GameBoard extends JPanel implements KeyListener, Runnable {
         {W,W,W,W,W,F,W,F,W,W,W,W,W,W,W,F,W,F,W,W,W,W,W},
         {W,F,F,F,F,F,F,F,F,F,F,W,F,F,F,F,F,F,F,F,F,F,W},
         {W,F,W,W,W,F,W,W,W,W,F,W,F,W,W,W,W,F,W,W,W,F,W},
-        {W,F,F,F,W,F,F,F,F,F,F,F,F,F,F,F,F,F,W,F,F,F,W},
+        {W,P,F,F,W,F,F,F,F,F,F,F,F,F,F,F,F,F,W,F,F,P,W},
         {W,W,W,F,W,F,W,F,W,W,W,W,W,W,W,F,W,F,W,F,W,W,W},
         {W,F,F,F,F,F,W,F,F,F,F,W,F,F,F,F,W,F,F,F,F,F,W},
         {W,F,W,W,W,W,W,W,W,W,F,W,F,W,W,W,W,W,W,W,W,F,W},
@@ -57,7 +58,6 @@ public class GameBoard extends JPanel implements KeyListener, Runnable {
     private final PinkGhost pinkGhost;
     private final BlueGhost blueGhost;
     private final OrangeGhost orangeGhost;
-    private final TimeTracker timeTracker;
     private final Thread pacmanThread;
     private final Thread redGhostThread;
     private final Thread pinkGhostThread;
@@ -66,6 +66,7 @@ public class GameBoard extends JPanel implements KeyListener, Runnable {
     public int score;
     private final List<int[]> foodCells;
     private ImageIcon foodImage;
+    private ImageIcon powerFoodImage;
 
     private JLabel[][] cells;
     private int mapHeight;
@@ -73,6 +74,7 @@ public class GameBoard extends JPanel implements KeyListener, Runnable {
     private JLayeredPane multiBoard;
     private JPanel background;
     private List<Upgrade> upgrades;
+    private int consecutiveGhostsEaten = 0;
 
 
     public GameBoard() {
@@ -84,7 +86,7 @@ public class GameBoard extends JPanel implements KeyListener, Runnable {
         getAllFoodCells();
         inGame = true;
         foodImage = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\food13\\food2.png");
-        timeTracker = new TimeTracker();
+        powerFoodImage = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\food13\\ghost_eater.png");
         upgrades = new ArrayList<>();
 
 //        this.setPreferredSize(new Dimension(mapHeight, mapWidth));
@@ -105,22 +107,22 @@ public class GameBoard extends JPanel implements KeyListener, Runnable {
         multiBoard.add(pacmanLabel, JLayeredPane.POPUP_LAYER);
         pacmanThread = new Thread(pacman);
 
-        redGhost = new RedGhost(boardDimensions, board, pacman, inGame, monitor);
+        redGhost = new RedGhost(boardDimensions, board, pacman, inGame, monitor, foodCells);
         JLabel redGhostLabel = redGhost.getRedGhostLabel();
         multiBoard.add(redGhostLabel, JLayeredPane.POPUP_LAYER);
         redGhostThread = new Thread(redGhost);
 
-        pinkGhost = new PinkGhost(boardDimensions, board, pacman, inGame, monitor);
+        pinkGhost = new PinkGhost(boardDimensions, board, pacman, inGame, monitor, foodCells);
         JLabel pinkGhostLabel = pinkGhost.getPinkGhostLabel();
         multiBoard.add(pinkGhostLabel, JLayeredPane.POPUP_LAYER);
         pinkGhostThread = new Thread(pinkGhost);
 
-        blueGhost = new BlueGhost(boardDimensions, board, pacman, inGame, foodCells, monitor);
+        blueGhost = new BlueGhost(boardDimensions, board, pacman, inGame, monitor, foodCells);
         JLabel blueGhostLabel = blueGhost.getBlueGhostLabel();
         multiBoard.add(blueGhostLabel, JLayeredPane.POPUP_LAYER);
         blueGhostThread = new Thread(blueGhost);
 
-        orangeGhost = new OrangeGhost(boardDimensions, board, pacman, inGame, foodCells, monitor);
+        orangeGhost = new OrangeGhost(boardDimensions, board, pacman, inGame, monitor, foodCells);
         JLabel orangeGhostLabel = orangeGhost.getOrangeGhostLabel();
         multiBoard.add(orangeGhostLabel, JLayeredPane.POPUP_LAYER);
         orangeGhostThread = new Thread(orangeGhost);
@@ -134,7 +136,14 @@ public class GameBoard extends JPanel implements KeyListener, Runnable {
 
         for (int i = 0; i < board.length; i++) {
             for (int j = 0; j < board[0].length; j++) {
-                cells[i][j] = board[i][j] == F ? new JLabel(foodImage) : new JLabel();
+
+                if (board[i][j] == F){
+                    cells[i][j] = new JLabel(foodImage);
+                } else if (board[i][j] == P) {
+                    cells[i][j] = new JLabel(powerFoodImage);
+                }else {
+                    cells[i][j] = new JLabel();
+                }
                 cells[i][j].setOpaque(true);
                 cells[i][j].setBackground(getCellColor(board[i][j]));
                 cells[i][j].setVisible(true);
@@ -172,8 +181,6 @@ public class GameBoard extends JPanel implements KeyListener, Runnable {
     private Color getCellColor(int cellType) {
         switch (cellType) {
             case W: return Color.BLUE;
-            case F: return Color.BLACK;
-            case E: return Color.BLACK;
             case D: return Color.MAGENTA;
             default: return Color.BLACK;
         }
@@ -181,6 +188,7 @@ public class GameBoard extends JPanel implements KeyListener, Runnable {
 
     private void checkFoodAndUpgradesCells(){
         int pacmanPosX, pacmanPosY;
+        //todo possibly move get upgrades to a separate method
         List<Upgrade> redGhostUpgrades, pinkGhostUpgrades, blueGhostUpgrades, orangeGhostsUpgrades;
         synchronized (monitor){
             pacmanPosX = pacman.getPacmanCordX();
@@ -241,6 +249,10 @@ public class GameBoard extends JPanel implements KeyListener, Runnable {
                 pacman.applyUpgrade(upgrade);
                 upgrades.remove(upgrade);
             }
+        } else if (board[pacmanPosY / boardDimensions][pacmanPosX / boardDimensions] == P) {
+            board[pacmanPosY / boardDimensions][pacmanPosX / boardDimensions] = E;
+            cells[pacmanPosY / boardDimensions][pacmanPosX / boardDimensions].setIcon(null);
+            startGhostsFrightenedState();
         }
     }
 
@@ -253,7 +265,6 @@ public class GameBoard extends JPanel implements KeyListener, Runnable {
         return null;
     }
 
-
     @Override
     public void run() {
         try {
@@ -263,14 +274,23 @@ public class GameBoard extends JPanel implements KeyListener, Runnable {
         }
         pacmanThread.start();
         redGhostThread.start();
-        pinkGhostThread.start();
-        blueGhostThread.start();
-        orangeGhostThread.start();
-        timeTracker.start();
+//        pinkGhostThread.start();
+//        blueGhostThread.start();
+//        orangeGhostThread.start();
 
-        new Thread(this::ghostCollisionDetectionLoop).start();
+        new Thread(this::characterCollisionLoop).start();
 
         while (inGame){
+            // todo possibly move or fix this
+            if (consecutiveGhostsEaten > 0 &&
+                    (redGhost.getGhostState() != GhostState.FRIGHTENED ||
+                            pinkGhost.getGhostState() != GhostState.FRIGHTENED ||
+                            blueGhost.getGhostState() != GhostState.FRIGHTENED ||
+                            orangeGhost.getGhostState() != GhostState.FRIGHTENED)){
+                consecutiveGhostsEaten = 0;
+            }
+
+
             checkFoodAndUpgradesCells();
 //            System.out.println("pacmanThread.getState() " + pacmanThread.getState());
 //            System.out.println("redGhostThread.getState() " + redGhostThread.getState());
@@ -288,48 +308,71 @@ public class GameBoard extends JPanel implements KeyListener, Runnable {
         }
     }
 
-    private void ghostCollisionDetectionLoop() {
+    //todo Implement the application using good programming practices with complete event handling implemented by the delegated event handling model !!
+
+    private void characterCollisionLoop() {
         while (inGame){
             synchronized (monitor){
-                if (!pacman.isInvincible) {
-                    //todo possibly update this so the overlap between a ghost and pacman during collision is not as crazy.... crazy? i was crazy once. they locked me in a room, a rubber room a rubber room with rats and the rats make me crazy. crazy? i was crazy once
-                    if (isCollision(pacman.getPacmanCordX(), pacman.getPacmanCordY(), redGhost.getRedGhostCordX(), redGhost.getRedGhostCordY()) ||
-                            isCollision(pacman.getPacmanCordX(), pacman.getPacmanCordY(), pinkGhost.getPinkGhostCordX(), pinkGhost.getPinkGhostCordY()) ||
-                            isCollision(pacman.getPacmanCordX(), pacman.getPacmanCordY(), blueGhost.getBlueGhostCordX(), blueGhost.getBlueGhostCordY()) ||
-                            isCollision(pacman.getPacmanCordX(), pacman.getPacmanCordY(), orangeGhost.getOrangeGhostCordX(), orangeGhost.getOrangeGhostCordY())) {
+                int pacmanX = pacman.getPacmanCordX();
+                int pacmanY = pacman.getPacmanCordY();
+                checkCollision(pacmanX, pacmanY, redGhost);
+                checkCollision(pacmanX, pacmanY, pinkGhost);
+                checkCollision(pacmanX, pacmanY, blueGhost);
+                checkCollision(pacmanX, pacmanY, orangeGhost);
+            }
+        }
+    }
 
-                        stopCharacterMovement();
+    private void checkCollision(int pacmanX, int pacmanY, Ghost ghost){
+        int ghostX, ghostY;
+        GhostState ghostState;
+        synchronized (monitor){
+            ghostX = ghost.getGhostCordX();
+            ghostY = ghost.getGhostCordY();
+            ghostState = ghost.getGhostState();
+        }
 
-                        Thread pacmanDeathAnimationThread = new Thread(new Runnable() {
-                            @Override
-                            public void run() {
-                                pacman.deathAnimationLoop();
-                            }
-                        });
-                        pacmanDeathAnimationThread.start();
-                        try {
-                            pacmanDeathAnimationThread.join();
+        if (isCollision(pacmanX, pacmanY, ghostX, ghostY) && ghostState != GhostState.SPAWN) {
+            if (ghostState == GhostState.FRIGHTENED) {
+                // Pacman eats the ghost
+                ghost.ghostHasBeenEaten();
+                consecutiveGhostsEaten++;
+                updateScore((int) (200 * Math.pow(2, consecutiveGhostsEaten)));
 
-                        } catch (InterruptedException e) {
-                            throw new RuntimeException(e);
-                        }
+            } else if (!pacman.isInvincible) {
+                // Pacman loses a life
+                stopCharacterMovement();
 
-                        pacman.lives--;
+                Thread pacmanDeathAnimationThread = new Thread(pacman::deathAnimationLoop);
+                pacmanDeathAnimationThread.start();
+                try {
+                    pacmanDeathAnimationThread.join();
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
 
-                        if (pacman.lives <= 0) {
-                            inGame = false;
-                        } else {
-                            resetPositions();
-                            try {
-                                Thread.sleep(500);
-                            } catch (InterruptedException e) {
-                                throw new RuntimeException(e);
-                            }
-                        }
+                pacman.lives--;
 
+                if (pacman.lives <= 0) {
+                    inGame = false;
+                } else {
+                    resetPositions();
+                    try {
+                        Thread.sleep(500);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
                     }
                 }
             }
+        }
+    }
+
+    private void startGhostsFrightenedState(){
+        synchronized (monitor){
+            redGhost.startFrightenedState();
+            pinkGhost.startFrightenedState();
+            blueGhost.startFrightenedState();
+            orangeGhost.startFrightenedState();
         }
     }
 

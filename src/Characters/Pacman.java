@@ -68,7 +68,6 @@ public class Pacman implements Runnable {
 
     private void updatePacmanIconLoop() {
         while (inGame){
-            //todo this props should not look like this
             if (!paused){
                 switch (currentPacmanOrientation) {
                     case 0:

@@ -1,5 +1,6 @@
 package Characters;
 
+import Components.GhostState;
 import Components.TimeTracker;
 import Components.Upgrade;
 import Components.UpgradeType;
@@ -8,42 +9,52 @@ import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
-public class PinkGhost implements Runnable {
+public class PinkGhost implements Runnable, Ghost {
 
     private ImageIcon[] pinkGhostImagesRight;
     private ImageIcon[] pinkGhostImagesLeft;
     private ImageIcon[] pinkGhostImagesUp;
     private ImageIcon[] pinkGhostImagesDown;
+    private ImageIcon[] frightenedGhostImages;
+    private ImageIcon[] frightenedFlashingGhostImages;
+    private ImageIcon eyesGhostImages;
 
     private final int startPositionX = 213;
     private final int startPositionY = 209;
 
     private int panelX = 213;
     private int panelY = 209;
+
+    private final int[][] board;
     private final int boardDimensions;
     private int currentGhostImageIndex;
     private int currentGhostOrientation;
-    private int nodeTargetX;
-    private int nodeTargetY;
     private int speed = 2;
+    private final Pacman pacman;
+    private final Object monitor;
+
     private PathFinding pathfinding;
     private List<Node> path;
     private int pathIndex = 0;
-    private final Pacman pacman;
-    private final int[][] board;
+    private int nodeTargetX;
+    private int nodeTargetY;
+
     private boolean inGame;
-    private final Object monitor;
-    private boolean ghostIsReleased;
+    private volatile boolean ghostIsReleased = false;
     private JLabel pinkGhostLabel;
     private volatile boolean paused = false;
-    private final TimeTracker timeTracker;
+
+    private final TimeTracker upgradesTimeTracker;
     private List<Upgrade> upgrades;
-    private volatile boolean upgradeGenerated = false;
+    private final List<int[]> foodCells;
 
+    private final TimeTracker frightTimeTracker;
+    private GhostState ghostState;
 
-    public PinkGhost(int boardDimensions, int[][] board, Pacman pacman, boolean inGame, Object monitor){
+    public PinkGhost(int boardDimensions, int[][] board, Pacman pacman, boolean inGame, Object monitor, List<int[]> foodCells){
+        this.board = board;
         this.boardDimensions = boardDimensions;
         loadImages();
         currentGhostImageIndex = 0;
@@ -52,41 +63,55 @@ public class PinkGhost implements Runnable {
         this.nodeTargetX = panelX;
         this.nodeTargetY = panelY;
         this.pacman = pacman;
-        this.board = board;
         this.inGame = inGame;
         this.monitor = monitor;
         ghostIsReleased = false;
+        this.foodCells = foodCells;
 
         pinkGhostLabel = new JLabel(pinkGhostImagesRight[0]);
         pinkGhostLabel.setOpaque(true);
         pinkGhostLabel.setBounds(startPositionX, startPositionY, 13, 13);
         pinkGhostLabel.setBackground(Color.black);
 
-        timeTracker = new TimeTracker();
+        upgradesTimeTracker = new TimeTracker();
+        frightTimeTracker = new TimeTracker();
         upgrades = new ArrayList<>();
+        ghostState = GhostState.CHASE;
     }
 
-    private void updatePinkGhostIconLoop() {
+    private void updateGhostIconLoop() {
         while (inGame){
             if (!paused){
-                switch (currentGhostOrientation) {
-                    case 0:
-                        pinkGhostLabel.setIcon(pinkGhostImagesUp[currentGhostImageIndex]);
-                        break;
-                    case 1:
-                        pinkGhostLabel.setIcon(pinkGhostImagesRight[currentGhostImageIndex]);
-                        break;
-                    case 2:
-                        pinkGhostLabel.setIcon(pinkGhostImagesDown[currentGhostImageIndex]);
-                        break;
-                    case 3:
-                        pinkGhostLabel.setIcon(pinkGhostImagesLeft[currentGhostImageIndex]);
-                        break;
+                switch (getGhostState()){
+                    case FRIGHTENED -> {
+                        if (frightTimeTracker.getSecondsPassed() >= 4){
+                            pinkGhostLabel.setIcon(frightenedFlashingGhostImages[currentGhostImageIndex]);
+                        }else {
+                            pinkGhostLabel.setIcon(frightenedGhostImages[currentGhostImageIndex]);
+                        }
+                    }
+                    case SPAWN -> pinkGhostLabel.setIcon(eyesGhostImages);
+                    default -> {
+                        switch (currentGhostOrientation) {
+                            case 0:
+                                pinkGhostLabel.setIcon(pinkGhostImagesUp[currentGhostImageIndex]);
+                                break;
+                            case 1:
+                                pinkGhostLabel.setIcon(pinkGhostImagesRight[currentGhostImageIndex]);
+                                break;
+                            case 2:
+                                pinkGhostLabel.setIcon(pinkGhostImagesDown[currentGhostImageIndex]);
+                                break;
+                            case 3:
+                                pinkGhostLabel.setIcon(pinkGhostImagesLeft[currentGhostImageIndex]);
+                                break;
+                        }
+                    }
                 }
                 updateImageIndex();
             }
             try {
-                Thread.sleep(40);
+                Thread.sleep(120);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
@@ -94,7 +119,7 @@ public class PinkGhost implements Runnable {
 
     }
 
-    private void updatePinkGhostLabelPosition(){
+    private void updateGhostLabelPosition(){
         pinkGhostLabel.setBounds(panelX + 3, panelY + 3, 13, 13);
     }
 
@@ -102,21 +127,36 @@ public class PinkGhost implements Runnable {
         currentGhostImageIndex = (currentGhostImageIndex + 1) % 2;
     }
 
-    private void generateUpgrade(){
-        if (timeTracker.getSecondsPassed() % 5 == 0 && !upgradeGenerated){
-            Random random = new Random();
-            if (random.nextInt(100) < 25) {
-                int x = panelX/boardDimensions;
-                int y = panelY/boardDimensions;
-                UpgradeType type = UpgradeType.values()[random.nextInt(UpgradeType.values().length)];
-                Upgrade upgrade = new Upgrade(x, y, type);
-                synchronized (monitor) {
-                    upgrades.add(upgrade);
+    private void generateUpgradeLoop(){
+        //todo fix so the ghost would stop leaving shit in the cage
+//        try {
+//            Thread.sleep(1500);
+//        } catch (InterruptedException e) {
+//            Thread.currentThread().interrupt();
+//        }
+        boolean upgradeGenerated = false;
+        upgradesTimeTracker.start();
+        while (inGame){
+            boolean ghostReleased;
+            synchronized (monitor){
+                ghostReleased = ghostIsReleased;
+            }
+            if ((getGhostState() == GhostState.CHASE || getGhostState() == GhostState.SCATTER) && ghostReleased){
+                if (upgradesTimeTracker.getSecondsPassed() % 5 == 0 && !upgradeGenerated){
+                    if (ThreadLocalRandom.current().nextInt(100) < 25) {
+                        int x = panelX/boardDimensions;
+                        int y = panelY/boardDimensions;
+                        UpgradeType type = UpgradeType.values()[ThreadLocalRandom.current().nextInt(UpgradeType.values().length)];
+                        Upgrade upgrade = new Upgrade(x, y, type);
+                        synchronized (monitor) {
+                            upgrades.add(upgrade);
+                        }
+                    }
+                    upgradeGenerated = true;
+                } else if (upgradesTimeTracker.getSecondsPassed() % 5 != 0){
+                    upgradeGenerated = false;
                 }
             }
-            upgradeGenerated = true;
-        } else if (timeTracker.getSecondsPassed() % 5 != 0){
-            upgradeGenerated = false;
         }
     }
 
@@ -128,28 +168,32 @@ public class PinkGhost implements Runnable {
 
     @Override
     public void run() {
-        new Thread(this::updatePinkGhostIconLoop).start();
-        timeTracker.start();
+        new Thread(this::updateGhostIconLoop).start();
+        new Thread(this::generateUpgradeLoop).start();
+        frightTimeTracker.start();
         while (inGame){
             checkPaused();
-            if (ghostIsReleased){
-                int pacmanPosX, pacmanPosY, pacmanOrientation;
 
-                synchronized (monitor){
-                    pacmanPosX = pacman.getPacmanCordX();
-                    pacmanPosY = pacman.getPacmanCordY();
-                    pacmanOrientation = pacman.getPacmanOrientation();
+            //todo figure out where to move this
+            if (ghostState == GhostState.SPAWN){
+                if (panelX/boardDimensions == startPositionX/boardDimensions && panelY/boardDimensions == startPositionY/boardDimensions){
+                    ghostState = GhostState.CHASE;
+                    speed = 2;
                 }
+            }
 
-                int[] target = getGhostTarget(pacmanPosX, pacmanPosY, pacmanOrientation);
-                movePinkGhost(target[0], target[1]);
-                generateUpgrade();
+            if (!ghostIsReleased){
+//              todo fix passing coords like this
+                moveGhost(225, 153);
+                synchronized (monitor){
+                    ghostIsReleased = true;
+                }
+            }else {
+                int[] ghostTarget = getGhostTarget();
+                moveGhost(ghostTarget[0], ghostTarget[1]);
             }
-            else {
-                //todo fix passing coords like this
-                ghostIsReleased = true;
-                movePinkGhost(225, 153);
-            }
+
+            updateGhostLabelPosition();
 
             try {
                 Thread.sleep(30);
@@ -160,7 +204,103 @@ public class PinkGhost implements Runnable {
 
     }
 
-    private void movePinkGhost(int targetX, int targetY){
+    public void startFrightenedState(){
+        synchronized (monitor){
+            ghostState = GhostState.FRIGHTENED;
+            speed = 1;
+        }
+        new Thread(this::checkIfFrightenedLoop).start();
+    }
+
+    private void checkIfFrightenedLoop(){
+        frightTimeTracker.resetTimePassed();
+        while (getGhostState() == GhostState.FRIGHTENED){
+            if (frightTimeTracker.getSecondsPassed() >= 6){
+                synchronized (monitor){
+                    speed = 2;
+                    ghostState = GhostState.CHASE;
+                }
+            }
+        }
+    }
+
+    public void ghostHasBeenEaten(){
+        synchronized (monitor){
+            speed = 5;
+            ghostIsReleased = false;
+            ghostState = GhostState.SPAWN;
+        }
+    }
+
+    public GhostState getGhostState(){
+        synchronized (monitor){
+            return ghostState;
+        }
+    }
+
+    private int[] getGhostTarget(){
+
+        switch (getGhostState()){
+            case FRIGHTENED:
+                int index = ThreadLocalRandom.current().nextInt(foodCells.size());
+                int[] randomCell = foodCells.get(index);
+                return new int[]{randomCell[1] * boardDimensions, randomCell[0] * boardDimensions};
+            case SPAWN:
+                return new int[]{startPositionX, startPositionY};
+            default:
+                int pacmanPosX, pacmanPosY, pacmanOrientation;
+                synchronized (monitor){
+                    pacmanPosX = pacman.getPacmanCordX();
+                    pacmanPosY = pacman.getPacmanCordY();
+                    pacmanOrientation = pacman.getPacmanOrientation();
+                }
+
+                int targetPacmanX = pacmanPosX;
+                int targetPacmanY = pacmanPosY;
+                for (int i = 0; i < 4; i++) {
+                    switch (pacmanOrientation) {
+                        case 0:
+                            if (targetPacmanY - boardDimensions > 0 && board[(targetPacmanY - boardDimensions) / boardDimensions][pacmanPosX / boardDimensions] != 1) {
+                                targetPacmanY -= boardDimensions;
+                            }
+                            break;
+                        case 1:
+                            if (targetPacmanX + boardDimensions >= board[0].length * boardDimensions ) {
+                                targetPacmanX = boardDimensions * 4;
+                                break;
+                            } else if (board[pacmanPosY / boardDimensions][(targetPacmanX + boardDimensions) / boardDimensions] != 1
+//                                && targetPacmanX + boardDimensions < boardDimensions * board[0].length
+                            ) {
+                                targetPacmanX += boardDimensions;
+                            }
+                            break;
+                        case 2:
+                            if (targetPacmanY + boardDimensions < boardDimensions * board.length && board[(targetPacmanY + boardDimensions) / boardDimensions][pacmanPosX / boardDimensions] != 1) {
+                                targetPacmanY += boardDimensions;
+                            }
+                            break;
+                        case 3:
+                            if (targetPacmanX - boardDimensions <= 0) {
+                                targetPacmanX = board[0].length * boardDimensions - boardDimensions * 4;
+                                break;
+                            }
+                            if (targetPacmanX - boardDimensions > 0 && board[pacmanPosY / boardDimensions][(targetPacmanX - boardDimensions) / boardDimensions] != 1) {
+                                targetPacmanX -= boardDimensions;
+                            }
+                            break;
+                    }
+                }
+
+                int[] targetCell = new int[2];
+                targetCell[0] = targetPacmanX;
+                targetCell[1] = targetPacmanY;
+
+                return targetCell;
+
+        }
+    }
+
+    private void moveGhost(int targetX, int targetY){
         if (path == null || pathIndex >= path.size() || (path.size()/6 <= pathIndex && path.size()/6 > 1)) {
             path = pathfinding.findPath(panelX / boardDimensions, panelY / boardDimensions, targetX / boardDimensions, targetY / boardDimensions);
             pathIndex = 0;
@@ -195,8 +335,6 @@ public class PinkGhost implements Runnable {
         if (panelX == nodeTargetX && panelY == nodeTargetY && path != null) {
             pathIndex++;
         }
-
-        updatePinkGhostLabelPosition();
     }
 
     public synchronized void pause() {
@@ -228,19 +366,20 @@ public class PinkGhost implements Runnable {
         return pinkGhostLabel;
     }
 
-    public int getPinkGhostCordX(){
+    public int getGhostCordX(){
         synchronized (monitor) {
             return panelX;
         }
     }
 
-    public int getPinkGhostCordY() {
+    public int getGhostCordY() {
         synchronized (monitor) {
             return panelY;
         }
     }
 
     public void resetPosition() {
+        //todo does this need to be synchronized??
         panelX = startPositionX;
         panelY = startPositionY;
         path = null;
@@ -250,53 +389,8 @@ public class PinkGhost implements Runnable {
         speed = 2;
         ghostIsReleased = false;
         upgrades.clear();
-        updatePinkGhostLabelPosition();
+        updateGhostLabelPosition();
         resume();
-    }
-
-    private int[] getGhostTarget(int pacmanPosX, int pacmanPosY, int pacmanOrientation){
-        int targetPacmanX = pacmanPosX;
-        int targetPacmanY = pacmanPosY;
-        for (int i = 0; i < 4; i++) {
-            switch (pacmanOrientation) {
-                case 0:
-                    if (targetPacmanY - boardDimensions > 0 && board[(targetPacmanY - boardDimensions) / boardDimensions][pacmanPosX / boardDimensions] != 1) {
-                        targetPacmanY -= boardDimensions;
-                    }
-                    break;
-                case 1:
-                    if (targetPacmanX + boardDimensions >= board[0].length * boardDimensions ) {
-                        targetPacmanX = boardDimensions * 4;
-                        break;
-                    } else if (board[pacmanPosY / boardDimensions][(targetPacmanX + boardDimensions) / boardDimensions] != 1
-//                                && targetPacmanX + boardDimensions < boardDimensions * board[0].length
-                    ) {
-                        targetPacmanX += boardDimensions;
-                    }
-                    break;
-                case 2:
-                    if (targetPacmanY + boardDimensions < boardDimensions * board.length && board[(targetPacmanY + boardDimensions) / boardDimensions][pacmanPosX / boardDimensions] != 1) {
-                        targetPacmanY += boardDimensions;
-                    }
-                    break;
-                case 3:
-                    if (targetPacmanX - boardDimensions <= 0) {
-                        targetPacmanX = board[0].length * boardDimensions - boardDimensions * 4;
-                        break;
-                    }
-                    if (targetPacmanX - boardDimensions > 0 && board[pacmanPosY / boardDimensions][(targetPacmanX - boardDimensions) / boardDimensions] != 1) {
-                        targetPacmanX -= boardDimensions;
-                    }
-                    break;
-            }
-        }
-
-        int[] targetCell = new int[2];
-        targetCell[0] = targetPacmanX;
-        targetCell[1] = targetPacmanY;
-
-        return targetCell;
-
     }
 
     private void loadImages(){
@@ -304,12 +398,19 @@ public class PinkGhost implements Runnable {
         pinkGhostImagesLeft = new ImageIcon[2];
         pinkGhostImagesUp = new ImageIcon[2];
         pinkGhostImagesDown = new ImageIcon[2];
+        frightenedGhostImages = new ImageIcon[2];
+        frightenedFlashingGhostImages = new ImageIcon[2];
+        eyesGhostImages = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\eye.png");
 
         for (int i = 0; i < 2; i++) {
             pinkGhostImagesRight[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\pinky\\pinky-right-" + i + ".png");
             pinkGhostImagesLeft[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\pinky\\pinky-left-" + i + ".png");
             pinkGhostImagesUp[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\pinky\\pinky-up-" + i + ".png");
             pinkGhostImagesDown[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\pinky\\pinky-down-" + i + ".png");
+            frightenedGhostImages[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\edible-ghost-" + i + ".png");
         }
+
+        frightenedFlashingGhostImages[0] = frightenedGhostImages[0];
+        frightenedFlashingGhostImages[1] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\edible-ghost-blink-1.png");
     }
 }

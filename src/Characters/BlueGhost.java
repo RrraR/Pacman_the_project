@@ -1,5 +1,6 @@
 package Characters;
 
+import Components.GhostState;
 import Components.TimeTracker;
 import Components.Upgrade;
 import Components.UpgradeType;
@@ -8,90 +9,110 @@ import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static Components.GameBoard.getNumberOfFoodsLeft;
 
-public class BlueGhost implements Runnable {
+public class BlueGhost implements Runnable, Ghost {
+
+    private ImageIcon[] blueGhostImagesRight;
+    private ImageIcon[] blueGhostImagesLeft;
+    private ImageIcon[] blueGhostImagesUp;
+    private ImageIcon[] blueGhostImagesDown;
+    private ImageIcon[] frightenedGhostImages;
+    private ImageIcon[] frightenedFlashingGhostImages;
+    private ImageIcon eyesGhostImages;
 
     private final int startPositionX = 186;
     private final int startPositionY = 209;
 
     private int panelX = 186;
     private int panelY = 209;
-    private ImageIcon[] blueGhostImagesRight;
-    private ImageIcon[] blueGhostImagesLeft;
-    private ImageIcon[] blueGhostImagesUp;
-    private ImageIcon[] blueGhostImagesDown;
     private final int[][] board;
     private final int boardDimensions;
     private int currentGhostImageIndex;
     private int currentGhostOrientation;
-    private final Pacman pacman;
-
-    private int nodeTargetX;
-    private int nodeTargetY;
     private int speed = 2;
+    private final Pacman pacman;
+    private final Object monitor;
+
     private PathFinding pathfinding;
     private List<Node> path;
     private int pathIndex = 0;
+    private int nodeTargetX;
+    private int nodeTargetY;
+
     boolean inGame;
-    private List<int[]> foodCells;
-    private final Object monitor;
-    private boolean ghostIsReleased;
+    private volatile boolean ghostIsReleased;
     private JLabel blueGhostLabel;
     private volatile boolean paused = false;
-    private final TimeTracker timeTracker;
-    private List<Upgrade> upgrades;
-    private volatile boolean upgradeGenerated = false;
-    
 
-    public BlueGhost(int boardDimensions, int[][] board, Pacman pacman, boolean inGame, List<int[]> foodCells, Object monitor){
+    private final TimeTracker upgradesTimeTracker;
+    private List<Upgrade> upgrades;
+    private List<int[]> foodCells;
+
+    private final TimeTracker frightTimeTracker;
+    private GhostState ghostState;
+
+    public BlueGhost(int boardDimensions, int[][] board, Pacman pacman, boolean inGame, Object monitor, List<int[]> foodCells){
         this.board = board;
         this.boardDimensions = boardDimensions;
-        this.pacman = pacman;
         loadImages();
-        this.nodeTargetX = panelX;
-        this.nodeTargetY = panelY;
         currentGhostImageIndex = 0;
         currentGhostOrientation = 1;
         this.pathfinding = new PathFinding(board);
+        this.nodeTargetX = panelX;
+        this.nodeTargetY = panelY;
+        this.pacman = pacman;
         this.inGame = inGame;
-        this.foodCells = foodCells;
         this.monitor = monitor;
         ghostIsReleased = false;
+        this.foodCells = foodCells;
 
         blueGhostLabel = new JLabel(blueGhostImagesRight[0]);
         blueGhostLabel.setOpaque(true);
         blueGhostLabel.setBounds(startPositionX, startPositionY, 13, 13);
         blueGhostLabel.setBackground(Color.black);
 
-        timeTracker = new TimeTracker();
+        upgradesTimeTracker = new TimeTracker();
+        frightTimeTracker = new TimeTracker();
         upgrades = new ArrayList<>();
+        ghostState = GhostState.CHASE;
     }
 
-    private void updateBlueGhostIconLoop() {
+    private void updateGhostIconLoop() {
         while (inGame){
             if (!paused){
-                switch (currentGhostOrientation) {
-                    case 0:
-                        blueGhostLabel.setIcon(blueGhostImagesUp[currentGhostImageIndex]);
-                        break;
-                    case 1:
-                        blueGhostLabel.setIcon(blueGhostImagesRight[currentGhostImageIndex]);
-                        break;
-                    case 2:
-                        blueGhostLabel.setIcon(blueGhostImagesDown[currentGhostImageIndex]);
-                        break;
-                    case 3:
-                        blueGhostLabel.setIcon(blueGhostImagesLeft[currentGhostImageIndex]);
-                        break;
+                switch (getGhostState()){
+                    case FRIGHTENED -> {
+                        if (frightTimeTracker.getSecondsPassed() >= 4){
+                            blueGhostLabel.setIcon(frightenedFlashingGhostImages[currentGhostImageIndex]);
+                        }else {
+                            blueGhostLabel.setIcon(frightenedGhostImages[currentGhostImageIndex]);
+                        }
+                    }
+                    case SPAWN -> blueGhostLabel.setIcon(eyesGhostImages);
+                    default -> {
+                        switch (currentGhostOrientation) {
+                            case 0:
+                                blueGhostLabel.setIcon(blueGhostImagesUp[currentGhostImageIndex]);
+                                break;
+                            case 1:
+                                blueGhostLabel.setIcon(blueGhostImagesRight[currentGhostImageIndex]);
+                                break;
+                            case 2:
+                                blueGhostLabel.setIcon(blueGhostImagesDown[currentGhostImageIndex]);
+                                break;
+                            case 3:
+                                blueGhostLabel.setIcon(blueGhostImagesLeft[currentGhostImageIndex]);
+                                break;
+                        }
+                    }
                 }
                 updateImageIndex();
             }
             try {
-                Thread.sleep(40);
+                Thread.sleep(120);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
@@ -99,7 +120,7 @@ public class BlueGhost implements Runnable {
 
     }
 
-    private void updateBlueGhostLabelPosition(){
+    private void updateGhostLabelPosition(){
         blueGhostLabel.setBounds(panelX + 3, panelY + 3, 13, 13);
     }
 
@@ -107,21 +128,27 @@ public class BlueGhost implements Runnable {
         currentGhostImageIndex = (currentGhostImageIndex + 1) % 2;
     }
 
-    private void generateUpgrade(){
-        if (timeTracker.getSecondsPassed() % 5 == 0 && !upgradeGenerated){
-            Random random = new Random();
-            if (random.nextInt(100) < 25) {
-                int x = panelX/boardDimensions;
-                int y = panelY/boardDimensions;
-                UpgradeType type = UpgradeType.values()[random.nextInt(UpgradeType.values().length)];
-                Upgrade upgrade = new Upgrade(x, y, type);
-                synchronized (monitor) {
-                    upgrades.add(upgrade);
+    private void generateUpgradeLoop(){
+        boolean upgradeGenerated = false;
+        upgradesTimeTracker.start();
+        while (inGame){
+
+            if ((getGhostState() == GhostState.CHASE || getGhostState() == GhostState.SCATTER) && ghostIsReleased){
+                if (upgradesTimeTracker.getSecondsPassed() % 5 == 0 && !upgradeGenerated){
+                    if (ThreadLocalRandom.current().nextInt(100) < 25) {
+                        int x = panelX/boardDimensions;
+                        int y = panelY/boardDimensions;
+                        UpgradeType type = UpgradeType.values()[ThreadLocalRandom.current().nextInt(UpgradeType.values().length)];
+                        Upgrade upgrade = new Upgrade(x, y, type);
+                        synchronized (monitor) {
+                            upgrades.add(upgrade);
+                        }
+                    }
+                    upgradeGenerated = true;
+                } else if (upgradesTimeTracker.getSecondsPassed() % 5 != 0){
+                    upgradeGenerated = false;
                 }
             }
-            upgradeGenerated = true;
-        } else if (timeTracker.getSecondsPassed() % 5 != 0){
-            upgradeGenerated = false;
         }
     }
 
@@ -133,24 +160,33 @@ public class BlueGhost implements Runnable {
 
     @Override
     public void run() {
-        new Thread(this::updateBlueGhostIconLoop).start();
-        timeTracker.start();
+        new Thread(this::updateGhostIconLoop).start();
+        new Thread(this::generateUpgradeLoop).start();
+        frightTimeTracker.start();
         while (inGame){
             checkPaused();
             if (pacman.amountOfFoodConsumed >= getNumberOfFoodsLeft()/3){
-                if (ghostIsReleased){
-                    int index = ThreadLocalRandom.current().nextInt(foodCells.size());
-                    int[] randomCell = foodCells.get(index);
 
-                    //TODO: possibly fix passing randomCell[1] * boardDimensions and randomCell[0] * boardDimensions
-                    moveBlueGhost(randomCell[1] * boardDimensions, randomCell[0] * boardDimensions);
-                    generateUpgrade();
-                }else{
-                    ghostIsReleased = true;
-                    //todo fix passing coords like this
-                    moveBlueGhost(225, 153);
+                //todo figure out where to move this
+                if (ghostState == GhostState.SPAWN){
+                    if (panelX/boardDimensions == startPositionX/boardDimensions && panelY/boardDimensions == startPositionY/boardDimensions){
+                        ghostState = GhostState.CHASE;
+                        speed = 2;
+                    }
                 }
 
+                if (!ghostIsReleased){
+//                //todo fix passing coords like this
+                    moveGhost(225, 153);
+                    synchronized (monitor){
+                        ghostIsReleased = true;
+                    }
+                }else {
+                    int[] ghostTarget = getGhostTarget();
+                    moveGhost(ghostTarget[0], ghostTarget[1]);
+                }
+
+                updateGhostLabelPosition();
             }
 
             try {
@@ -161,62 +197,53 @@ public class BlueGhost implements Runnable {
         }
     }
 
-    public JLabel getBlueGhostLabel() {
-        return blueGhostLabel;
+    public void startFrightenedState(){
+        synchronized (monitor){
+            ghostState = GhostState.FRIGHTENED;
+            speed = 1;
+        }
+        new Thread(this::checkIfFrightenedLoop).start();
     }
 
-    public synchronized void pause() {
-        paused = true;
-    }
-
-    public synchronized void resume() {
-        paused = false;
-        notify();
-    }
-
-    private synchronized void checkPaused() {
-        while (paused) {
-            try {
-                wait();
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
+    private void checkIfFrightenedLoop(){
+        frightTimeTracker.resetTimePassed();
+        while (getGhostState() == GhostState.FRIGHTENED){
+            if (frightTimeTracker.getSecondsPassed() >= 6){
+                synchronized (monitor){
+                    speed = 2;
+                    ghostState = GhostState.CHASE;
+                }
             }
         }
     }
 
-    public List<Upgrade> getUpgrades() {
-        synchronized (monitor) {
-            return new ArrayList<>(upgrades);
+    public void ghostHasBeenEaten(){
+        synchronized (monitor){
+            speed = 5;
+            ghostIsReleased = false;
+            ghostState = GhostState.SPAWN;
         }
     }
 
-    public int getBlueGhostCordX(){
-        synchronized (monitor) {
-            return panelX;
+    public GhostState getGhostState(){
+        synchronized (monitor){
+            return ghostState;
         }
     }
 
-    public int getBlueGhostCordY() {
-        synchronized (monitor) {
-            return panelY;
+    private int[] getGhostTarget(){
+
+        switch (getGhostState()){
+            case SPAWN:
+                return new int[]{startPositionX, startPositionY};
+            default:
+                int index = ThreadLocalRandom.current().nextInt(foodCells.size());
+                int[] randomCell = foodCells.get(index);
+                return new int[]{randomCell[1] * boardDimensions, randomCell[0] * boardDimensions};
         }
     }
 
-    public void resetPosition() {
-        panelX = startPositionX;
-        panelY = startPositionY;
-        path = null;
-        pathIndex = 0;
-        currentGhostImageIndex = 0;
-        currentGhostOrientation = 1;
-        speed = 2;
-        ghostIsReleased = false;
-        upgrades.clear();
-        updateBlueGhostLabelPosition();
-        resume();
-    }
-
-    private void moveBlueGhost(int targetX, int targetY){
+    private void moveGhost(int targetX, int targetY){
         if (path == null || pathIndex >= path.size()) {
             path = pathfinding.findPath(panelX / boardDimensions, panelY / boardDimensions, targetX / boardDimensions, targetY / boardDimensions);
 //            for (Node node: path) {
@@ -255,8 +282,61 @@ public class BlueGhost implements Runnable {
         if (panelX == nodeTargetX && panelY == nodeTargetY && path != null) {
             pathIndex++;
         }
+    }
 
-        updateBlueGhostLabelPosition();
+    public synchronized void pause() {
+        paused = true;
+    }
+
+    public synchronized void resume() {
+        paused = false;
+        notify();
+    }
+
+    private synchronized void checkPaused() {
+        while (paused) {
+            try {
+                wait();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+
+    public List<Upgrade> getUpgrades() {
+        synchronized (monitor) {
+            return new ArrayList<>(upgrades);
+        }
+    }
+
+    public JLabel getBlueGhostLabel() {
+        return blueGhostLabel;
+    }
+
+    public int getGhostCordX(){
+        synchronized (monitor) {
+            return panelX;
+        }
+    }
+
+    public int getGhostCordY() {
+        synchronized (monitor) {
+            return panelY;
+        }
+    }
+
+    public void resetPosition() {
+        panelX = startPositionX;
+        panelY = startPositionY;
+        path = null;
+        pathIndex = 0;
+        currentGhostImageIndex = 0;
+        currentGhostOrientation = 1;
+        speed = 2;
+        ghostIsReleased = false;
+        upgrades.clear();
+        updateGhostLabelPosition();
+        resume();
     }
 
     private void loadImages(){
@@ -265,12 +345,20 @@ public class BlueGhost implements Runnable {
         blueGhostImagesLeft = new ImageIcon[2];
         blueGhostImagesUp = new ImageIcon[2];
         blueGhostImagesDown = new ImageIcon[2];
+        frightenedGhostImages = new ImageIcon[2];
+        frightenedFlashingGhostImages = new ImageIcon[2];
+        eyesGhostImages = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\eye.png");
+
 
         for (int i = 0; i < 2; i++) {
             blueGhostImagesRight[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\inky\\inky-right-" + i + ".png");
             blueGhostImagesLeft[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\inky\\inky-left-" + i + ".png");
             blueGhostImagesUp[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\inky\\inky-up-" + i + ".png");
             blueGhostImagesDown[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\inky\\inky-down-" + i + ".png");
+            frightenedGhostImages[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\edible-ghost-" + i + ".png");
         }
+
+        frightenedFlashingGhostImages[0] = frightenedGhostImages[0];
+        frightenedFlashingGhostImages[1] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\edible-ghost-blink-1.png");
     }
 }
