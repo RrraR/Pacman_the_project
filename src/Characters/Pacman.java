@@ -7,13 +7,13 @@ import java.util.*;
 import java.awt.*;
 import java.util.List;
 
+import static Components.GameBoard.*;
+
 public class Pacman implements Runnable {
 
     private final int startPositionX = 209;
     private final int startPositionY = 269;
 
-    private final int[][] board;
-    private final int boardDimensions;
     private final Object monitor;
     private int panelX = 209;
     private int panelY = 266;
@@ -37,6 +37,7 @@ public class Pacman implements Runnable {
     private volatile boolean paused = false;
 //    private List<Upgrade> upgrades;
     public boolean isInvincible;
+    public boolean isGhostEater;
     public int scoreMultiplier;
 //    private final TimeTracker timeTracker;
 //    private Upgrade currentUpgrade;
@@ -45,9 +46,7 @@ public class Pacman implements Runnable {
 
 //    private final Thread checkActiveUpdatesThread;
 
-    public Pacman(int boardDimensions, int[][] board, boolean inGame, Object monitor){
-        this.board = board;
-        this.boardDimensions = boardDimensions;
+    public Pacman(boolean inGame, Object monitor){
         loadImages();
         currentPacmanImageIndex = 0;
         currentPacmanOrientation = 1;
@@ -60,6 +59,7 @@ public class Pacman implements Runnable {
         pacmanLabel.setBackground(Color.black);
         pacmanAnimationThread = new Thread(this::updatePacmanIconLoop);
         isInvincible = false;
+        isGhostEater = false;
         scoreMultiplier = 1;
 //        timeTracker = new TimeTracker();
         activeUpgrades = Collections.synchronizedList(new ArrayList<>());
@@ -108,6 +108,7 @@ public class Pacman implements Runnable {
         while (inGame){
             checkPaused();
             synchronized (monitor){
+                //todo fix this looks weird
                 if (panelX - 13 > 0 && panelX < board.length * boardDimensions && panelX / boardDimensions < 22 && checkCollision()){
 //                    return;
                 }else {
@@ -165,7 +166,7 @@ public class Pacman implements Runnable {
                     scoreMultiplier = 1;
                     break;
                 case GHOST_EATER:
-                    // Logic for GHOST_EATER
+                    isGhostEater = false;
                     break;
             }
         }
@@ -228,7 +229,7 @@ public class Pacman implements Runnable {
                     scoreMultiplier = 2;
                     break;
                 case GHOST_EATER:
-                    // Logic for GHOST_EATER
+                    isGhostEater = true;
                     break;
             }
         }
@@ -295,10 +296,9 @@ public class Pacman implements Runnable {
     public void updateAmountOfFoodEaten(){
         amountOfFoodConsumed++;
     }
-//todo: fix usages of 1
 
     public void setMoveRight(){
-        if (board[panelY/boardDimensions][(panelX)/boardDimensions + 1] != 1) {
+        if (board[panelY/boardDimensions][(panelX)/boardDimensions + 1] != W) {
             currentSpeedY = 0;
             currentSpeedX = initSpeedX;
             currentPacmanOrientation = 1;
@@ -306,7 +306,7 @@ public class Pacman implements Runnable {
     }
 
     public void setMoveLeft(){
-        if (board[panelY / boardDimensions][(panelX + 13)/ boardDimensions - 1] != 1){
+        if (board[panelY / boardDimensions][(panelX + 13)/ boardDimensions - 1] != W){
             currentSpeedX = -initSpeedX;
             currentSpeedY = 0;
             currentPacmanOrientation = 3;
@@ -314,7 +314,7 @@ public class Pacman implements Runnable {
     }
 
     public void setMoveUp(){
-        if (board[panelY/boardDimensions - 1][panelX/boardDimensions] != 1){
+        if (board[panelY/boardDimensions - 1][panelX/boardDimensions] != W){
             currentSpeedY = -initSpeedY;
             currentSpeedX = 0;
             currentPacmanOrientation = 0;
@@ -322,7 +322,7 @@ public class Pacman implements Runnable {
     }
 
     public void setMoveDown(){
-        if (board[panelY/boardDimensions + 1][panelX/boardDimensions] != 1){
+        if (board[panelY/boardDimensions + 1][panelX/boardDimensions] != W){
             currentSpeedX = 0;
             currentSpeedY = initSpeedY;
             currentPacmanOrientation = 2;

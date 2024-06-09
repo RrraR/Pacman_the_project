@@ -11,6 +11,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
+import static Components.GameBoard.*;
+
 public class RedGhost implements Runnable, Ghost {
 
     private ImageIcon[] redGhostImagesRight;
@@ -27,35 +29,29 @@ public class RedGhost implements Runnable, Ghost {
     private int panelX = 215;
     private int panelY = 153;
 
-    private final int[][] board;
-    private final int boardDimensions;
     private int currentGhostImageIndex;
     private int currentGhostOrientation;
     private int speed = 2;
     private final Pacman pacman;
     private final Object monitor;
 
-    private PathFinding pathfinding;
+    private final PathFinding pathfinding;
     private List<Node> path;
     private int pathIndex = 0;
     private int nodeTargetX;
     private int nodeTargetY;
 
     private boolean inGame;
-    private volatile boolean ghostIsReleased = false;
-    private JLabel redGhostLabel;
+    private final JLabel redGhostLabel;
     private volatile boolean paused = false;
 
     private final TimeTracker upgradesTimeTracker;
     private List<Upgrade> upgrades;
-    private final List<int[]> foodCells;
 
     private final TimeTracker frightTimeTracker;
     private GhostState ghostState;
 
-    public RedGhost(int boardDimensions, int[][] board, Pacman pacman, boolean inGame, Object monitor, List<int[]> foodCells){
-        this.board = board;
-        this.boardDimensions = boardDimensions;
+    public RedGhost(int[][] board, Pacman pacman, boolean inGame, Object monitor){
         loadImages();
         currentGhostImageIndex = 0;
         currentGhostOrientation = 1;
@@ -65,8 +61,6 @@ public class RedGhost implements Runnable, Ghost {
         this.pacman = pacman;
         this.inGame = inGame;
         this.monitor = monitor;
-        ghostIsReleased = false;
-        this.foodCells = foodCells;
 
         redGhostLabel = new JLabel(redGhostImagesRight[0]);
         redGhostLabel.setOpaque(true);
@@ -120,7 +114,7 @@ public class RedGhost implements Runnable, Ghost {
     }
 
     private void updateGhostLabelPosition(){
-        redGhostLabel.setBounds(panelX + 3, panelY + 3, 13, 13);
+        redGhostLabel.setBounds(getGhostCordX() + 3, getGhostCordY() + 3, 13, 13);
     }
 
     public void updateImageIndex() {
@@ -131,11 +125,14 @@ public class RedGhost implements Runnable, Ghost {
         boolean upgradeGenerated = false;
         upgradesTimeTracker.start();
         while (inGame){
-            if ((getGhostState() == GhostState.CHASE || getGhostState() == GhostState.SCATTER) && ghostIsReleased){
+            boolean isInCage = getGhostCordX() >= cageTopLeftX && getGhostCordX() <= cageBottomRightX  &&
+                    getGhostCordY() >= cageTopLeftY && getGhostCordY() <= cageBottomRightY;
+
+            if ((getGhostState() == GhostState.CHASE || getGhostState() == GhostState.SCATTER) && !isInCage){
                 if (upgradesTimeTracker.getSecondsPassed() % 5 == 0 && !upgradeGenerated){
                     if (ThreadLocalRandom.current().nextInt(100) < 25) {
-                        int x = panelX/boardDimensions;
-                        int y = panelY/boardDimensions;
+                        int x = getGhostCordX()/boardDimensions;
+                        int y = getGhostCordY()/boardDimensions;
                         UpgradeType type = UpgradeType.values()[ThreadLocalRandom.current().nextInt(UpgradeType.values().length)];
                         Upgrade upgrade = new Upgrade(x, y, type);
                         synchronized (monitor) {
@@ -165,17 +162,20 @@ public class RedGhost implements Runnable, Ghost {
             checkPaused();
 
             //todo figure out where to move this
-            if (ghostState == GhostState.SPAWN && (panelX/boardDimensions == 213/boardDimensions && panelY/boardDimensions == 209/boardDimensions)){
-                ghostState = GhostState.CHASE;
-                speed = 2;
+            if (ghostState == GhostState.SPAWN && (getGhostCordX()/boardDimensions == 213/boardDimensions && getGhostCordY()/boardDimensions == 209/boardDimensions)){
+                synchronized (monitor){
+                    ghostState = GhostState.CHASE;
+                    speed = 2;
+                }
             }
 
-            if (!ghostIsReleased){
+            boolean isInCage = getGhostCordX() >= cageTopLeftX && getGhostCordX() <= cageBottomRightX  &&
+                    getGhostCordY() >= cageTopLeftY && getGhostCordY() <= cageBottomRightY;
+
+
+            if (isInCage){
 //                //todo fix passing coords like this
                 moveGhost(225, 153);
-                synchronized (monitor){
-                    ghostIsReleased = true;
-                }
             }else {
                 int[] ghostTarget = getGhostTarget();
                 moveGhost(ghostTarget[0], ghostTarget[1]);
@@ -215,7 +215,6 @@ public class RedGhost implements Runnable, Ghost {
     public void ghostHasBeenEaten(){
         synchronized (monitor){
             speed = 5;
-            ghostIsReleased = false;
             ghostState = GhostState.SPAWN;
         }
     }
@@ -331,15 +330,16 @@ public class RedGhost implements Runnable, Ghost {
     }
 
     public void resetPosition() {
-        panelX = startPositionX;
-        panelY = startPositionY;
-        path = null;
-        pathIndex = 0;
-        currentGhostImageIndex = 0;
-        currentGhostOrientation = 1;
-        speed = 2;
-        ghostIsReleased = false;
-        upgrades.clear();
+        synchronized (monitor){
+            panelX = startPositionX;
+            panelY = startPositionY;
+            path = null;
+            pathIndex = 0;
+            currentGhostImageIndex = 0;
+            currentGhostOrientation = 1;
+            speed = 2;
+            upgrades.clear();
+        }
         updateGhostLabelPosition();
         resume();
     }
@@ -364,8 +364,5 @@ public class RedGhost implements Runnable, Ghost {
 
         frightenedFlashingGhostImages[0] = frightenedGhostImages[0];
         frightenedFlashingGhostImages[1] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\edible-ghost-blink-1.png");
-//        frightenedFlashingGhostImages[2] = frightenedBlueGhostImages[1];
-//        frightenedFlashingGhostImages[3] = frightenedWhiteGhostImages[0];
-
     }
 }

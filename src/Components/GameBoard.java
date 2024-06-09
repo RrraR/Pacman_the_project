@@ -10,14 +10,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class GameBoard extends JPanel implements KeyListener, Runnable {
-    final static int W=1; // Wall.
-    final static int F=2; // Crossroads with food
-    final static int E=3; // Empty space
-    final static int D=4; // Door space
-    final static int U=5; // Ghost Upgrade space
-    final static int P=6; // Power Pellet
+    public final static int W=1; // Wall.
+    public final static int F=2; // Crossroads with food
+    public final static int E=3; // Empty space
+    public final static int D=4; // Door space
+    public final static int U=5; // Ghost Upgrade space
+    public final static int P=6; // Power Pellet
 
-    public static int board[][] = {
+    public static int[][] board = {
         //-----------------------X---H-------------------------//
         //board.length - rows
         //board[0].length - cols
@@ -49,9 +49,14 @@ public class GameBoard extends JPanel implements KeyListener, Runnable {
         {W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W}
     };
 
-    private final Object monitor = new Object();
+    public static int boardDimensions = 19;
+    public static int cageTopLeftX = 152;
+    public static int cageTopLeftY = 171;
+    public static int cageBottomRightX = 266;
+    public static int cageBottomRightY = 247;
 
-    private final int boardDimensions = 19;
+    public static List<int[]> foodCells;
+
     public Boolean inGame = false;
     private final Pacman pacman;
     private final RedGhost redGhost;
@@ -63,8 +68,8 @@ public class GameBoard extends JPanel implements KeyListener, Runnable {
     private final Thread pinkGhostThread;
     private final Thread blueGhostThread;
     private final Thread orangeGhostThread;
+    private final Object monitor = new Object();
     public int score;
-    private final List<int[]> foodCells;
     private ImageIcon foodImage;
     private ImageIcon powerFoodImage;
 
@@ -86,7 +91,7 @@ public class GameBoard extends JPanel implements KeyListener, Runnable {
         getAllFoodCells();
         inGame = true;
         foodImage = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\food13\\food2.png");
-        powerFoodImage = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\food13\\ghost_eater.png");
+        powerFoodImage = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\food13\\Pfood.png");
         upgrades = new ArrayList<>();
 
 //        this.setPreferredSize(new Dimension(mapHeight, mapWidth));
@@ -102,27 +107,27 @@ public class GameBoard extends JPanel implements KeyListener, Runnable {
         multiBoard.add(background, JLayeredPane.DEFAULT_LAYER);
         multiBoard.setVisible(true);
 
-        pacman = new Pacman(boardDimensions, board, inGame, monitor);
+        pacman = new Pacman(inGame, monitor);
         JLabel pacmanLabel = pacman.getPacmanLabel();
         multiBoard.add(pacmanLabel, JLayeredPane.POPUP_LAYER);
         pacmanThread = new Thread(pacman);
 
-        redGhost = new RedGhost(boardDimensions, board, pacman, inGame, monitor, foodCells);
+        redGhost = new RedGhost(board, pacman, inGame, monitor);
         JLabel redGhostLabel = redGhost.getRedGhostLabel();
         multiBoard.add(redGhostLabel, JLayeredPane.POPUP_LAYER);
         redGhostThread = new Thread(redGhost);
 
-        pinkGhost = new PinkGhost(boardDimensions, board, pacman, inGame, monitor, foodCells);
+        pinkGhost = new PinkGhost(board, pacman, inGame, monitor);
         JLabel pinkGhostLabel = pinkGhost.getPinkGhostLabel();
         multiBoard.add(pinkGhostLabel, JLayeredPane.POPUP_LAYER);
         pinkGhostThread = new Thread(pinkGhost);
 
-        blueGhost = new BlueGhost(boardDimensions, board, pacman, inGame, monitor, foodCells);
+        blueGhost = new BlueGhost(board, pacman, inGame, monitor);
         JLabel blueGhostLabel = blueGhost.getBlueGhostLabel();
         multiBoard.add(blueGhostLabel, JLayeredPane.POPUP_LAYER);
         blueGhostThread = new Thread(blueGhost);
 
-        orangeGhost = new OrangeGhost(boardDimensions, board, pacman, inGame, monitor, foodCells);
+        orangeGhost = new OrangeGhost(board, pacman, inGame, monitor);
         JLabel orangeGhostLabel = orangeGhost.getOrangeGhostLabel();
         multiBoard.add(orangeGhostLabel, JLayeredPane.POPUP_LAYER);
         orangeGhostThread = new Thread(orangeGhost);
@@ -274,9 +279,9 @@ public class GameBoard extends JPanel implements KeyListener, Runnable {
         }
         pacmanThread.start();
         redGhostThread.start();
-//        pinkGhostThread.start();
-//        blueGhostThread.start();
-//        orangeGhostThread.start();
+        pinkGhostThread.start();
+        blueGhostThread.start();
+        orangeGhostThread.start();
 
         new Thread(this::characterCollisionLoop).start();
 
@@ -333,7 +338,7 @@ public class GameBoard extends JPanel implements KeyListener, Runnable {
         }
 
         if (isCollision(pacmanX, pacmanY, ghostX, ghostY) && ghostState != GhostState.SPAWN) {
-            if (ghostState == GhostState.FRIGHTENED) {
+            if (ghostState == GhostState.FRIGHTENED || pacman.isGhostEater) {
                 // Pacman eats the ghost
                 ghost.ghostHasBeenEaten();
                 consecutiveGhostsEaten++;
