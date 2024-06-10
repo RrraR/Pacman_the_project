@@ -46,11 +46,11 @@ public class Upgrade {
     }
 
     private void loadImages(){
-        speedBoostIcon = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\food13\\speed_boost.png");
-        extraLifeIcon = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\food13\\extra_life.png");
-        invincibilityIcon = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\food13\\invincibility.png");
-        scoreMultiplierIcon = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\food13\\score_multiplier.png");
-        ghostEaterIcon = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\food13\\ghost_eater.png");
+        speedBoostIcon = new ImageIcon(getClass().getClassLoader().getResource("resources\\food13\\speed_boost.png"));
+        extraLifeIcon = new ImageIcon(getClass().getClassLoader().getResource("resources\\food13\\extra_life.png"));
+        invincibilityIcon = new ImageIcon(getClass().getClassLoader().getResource("resources\\food13\\invincibility.png"));
+        scoreMultiplierIcon = new ImageIcon(getClass().getClassLoader().getResource("resources\\food13\\score_multiplier.png"));
+        ghostEaterIcon = new ImageIcon(getClass().getClassLoader().getResource("resources\\food13\\ghost_eater.png"));
     }
 
     public void startUpgradeTimer(){

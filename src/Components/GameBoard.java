@@ -90,8 +90,8 @@ public class GameBoard extends JPanel implements KeyListener, Runnable {
         foodCells = new ArrayList<>();
         getAllFoodCells();
         inGame = true;
-        foodImage = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\food13\\food2.png");
-        powerFoodImage = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\food13\\Pfood.png");
+        foodImage = new ImageIcon(getClass().getClassLoader().getResource("resources\\food13\\food2.png"));
+        powerFoodImage = new ImageIcon(getClass().getClassLoader().getResource("resources\\food13\\Pfood.png"));
         upgrades = new ArrayList<>();
 
 //        this.setPreferredSize(new Dimension(mapHeight, mapWidth));
@@ -240,24 +240,26 @@ public class GameBoard extends JPanel implements KeyListener, Runnable {
             orangeGhost.removeProcessedUpgrades();
         }
 
-        if (board[pacmanPosY / boardDimensions][pacmanPosX / boardDimensions] == F) {
-            board[pacmanPosY / boardDimensions][pacmanPosX / boardDimensions] = E;
-            cells[pacmanPosY / boardDimensions][pacmanPosX / boardDimensions].setIcon(null);
-            updateScore(10 * pacman.scoreMultiplier);
-            pacman.updateAmountOfFoodEaten();
-        } else if (board[pacmanPosY / boardDimensions][pacmanPosX / boardDimensions] == U) {
-            Upgrade upgrade = getUpgrade( pacmanPosX / boardDimensions, pacmanPosY / boardDimensions);
-            if (upgrade != null){
+        synchronized (monitor){
+            if (board[pacmanPosY / boardDimensions][pacmanPosX / boardDimensions] == F) {
                 board[pacmanPosY / boardDimensions][pacmanPosX / boardDimensions] = E;
                 cells[pacmanPosY / boardDimensions][pacmanPosX / boardDimensions].setIcon(null);
-                updateScore(20 * pacman.scoreMultiplier);
-                pacman.applyUpgrade(upgrade);
-                upgrades.remove(upgrade);
+                updateScore(10 * pacman.scoreMultiplier);
+                pacman.updateAmountOfFoodEaten();
+            } else if (board[pacmanPosY / boardDimensions][pacmanPosX / boardDimensions] == U) {
+                Upgrade upgrade = getUpgrade( pacmanPosX / boardDimensions, pacmanPosY / boardDimensions);
+                if (upgrade != null){
+                    board[pacmanPosY / boardDimensions][pacmanPosX / boardDimensions] = E;
+                    cells[pacmanPosY / boardDimensions][pacmanPosX / boardDimensions].setIcon(null);
+                    updateScore(20 * pacman.scoreMultiplier);
+                    pacman.applyUpgrade(upgrade);
+                    upgrades.remove(upgrade);
+                }
+            } else if (board[pacmanPosY / boardDimensions][pacmanPosX / boardDimensions] == P) {
+                board[pacmanPosY / boardDimensions][pacmanPosX / boardDimensions] = E;
+                cells[pacmanPosY / boardDimensions][pacmanPosX / boardDimensions].setIcon(null);
+                startGhostsFrightenedState();
             }
-        } else if (board[pacmanPosY / boardDimensions][pacmanPosX / boardDimensions] == P) {
-            board[pacmanPosY / boardDimensions][pacmanPosX / boardDimensions] = E;
-            cells[pacmanPosY / boardDimensions][pacmanPosX / boardDimensions].setIcon(null);
-            startGhostsFrightenedState();
         }
     }
 
@@ -406,11 +408,15 @@ public class GameBoard extends JPanel implements KeyListener, Runnable {
     }
 
     public String getScore(){
-        return String.valueOf(score);
+        synchronized (monitor){
+            return String.valueOf(score);
+        }
     }
 
-    public String getPacmanLives(){
-        return String.valueOf(pacman.lives);
+    public int getPacmanLives(){
+        synchronized (monitor){
+            return pacman.lives;
+        }
     }
 
     private void updateScore(int addValue){

@@ -395,10 +395,10 @@ public class Pacman implements Runnable {
 
 
         for (int i = 0; i < 3; i++) {
-            pacmanImagesRight[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\pacman13\\mspacman-right_" + i + ".png");
-            pacmanImagesLeft[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\pacman13\\mspacman-left_" + i + ".png");
-            pacmanImagesUp[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\pacman13\\mspacman-up_" + i + ".png");
-            pacmanImagesDown[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\pacman13\\mspacman-down_" + i + ".png");
+            pacmanImagesRight[i] = new ImageIcon(getClass().getClassLoader().getResource("resources\\pacman13\\mspacman-right_" + i + ".png"));
+            pacmanImagesLeft[i] = new ImageIcon(getClass().getClassLoader().getResource("resources\\pacman13\\mspacman-left_" + i + ".png"));
+            pacmanImagesUp[i] = new ImageIcon(getClass().getClassLoader().getResource("resources\\pacman13\\mspacman-up_" + i + ".png"));
+            pacmanImagesDown[i] = new ImageIcon(getClass().getClassLoader().getResource("resources\\pacman13\\mspacman-down_" + i + ".png"));
         }
 
         pacmanDeathImages[0] = pacmanImagesUp[1];

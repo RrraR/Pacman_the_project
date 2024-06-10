@@ -386,17 +386,17 @@ public class PinkGhost implements Runnable, Ghost {
         pinkGhostImagesDown = new ImageIcon[2];
         frightenedGhostImages = new ImageIcon[2];
         frightenedFlashingGhostImages = new ImageIcon[2];
-        eyesGhostImages = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\eye.png");
+        eyesGhostImages = new ImageIcon(getClass().getClassLoader().getResource("resources\\ghosts13\\eye.png"));
 
         for (int i = 0; i < 2; i++) {
-            pinkGhostImagesRight[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\pinky\\pinky-right-" + i + ".png");
-            pinkGhostImagesLeft[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\pinky\\pinky-left-" + i + ".png");
-            pinkGhostImagesUp[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\pinky\\pinky-up-" + i + ".png");
-            pinkGhostImagesDown[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\pinky\\pinky-down-" + i + ".png");
-            frightenedGhostImages[i] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\edible-ghost-" + i + ".png");
+            pinkGhostImagesRight[i] = new ImageIcon(getClass().getClassLoader().getResource("resources\\ghosts13\\pinky\\pinky-right-" + i + ".png"));
+            pinkGhostImagesLeft[i] = new ImageIcon(getClass().getClassLoader().getResource("resources\\ghosts13\\pinky\\pinky-left-" + i + ".png"));
+            pinkGhostImagesUp[i] = new ImageIcon(getClass().getClassLoader().getResource("resources\\ghosts13\\pinky\\pinky-up-" + i + ".png"));
+            pinkGhostImagesDown[i] = new ImageIcon(getClass().getClassLoader().getResource("resources\\ghosts13\\pinky\\pinky-down-" + i + ".png"));
+            frightenedGhostImages[i] = new ImageIcon(getClass().getClassLoader().getResource("resources\\ghosts13\\edible-ghost-" + i + ".png"));
         }
 
         frightenedFlashingGhostImages[0] = frightenedGhostImages[0];
-        frightenedFlashingGhostImages[1] = new ImageIcon("D:\\Documents\\uni2\\sem 2\\GUI\\Project\\resources\\ghosts13\\edible-ghost-blink-1.png");
+        frightenedFlashingGhostImages[1] = new ImageIcon(getClass().getClassLoader().getResource("resources\\ghosts13\\edible-ghost-blink-1.png"));
     }
 }
