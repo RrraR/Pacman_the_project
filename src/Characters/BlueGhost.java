@@ -1,9 +1,6 @@
 package Characters;
 
-import Components.GhostState;
-import Components.TimeTracker;
-import Components.Upgrade;
-import Components.UpgradeType;
+import Components.*;
 
 import javax.swing.*;
 import java.awt.*;
@@ -31,7 +28,7 @@ public class BlueGhost implements Runnable, Ghost {
     private int panelY = 209;
 
     private int currentGhostImageIndex;
-    private int currentGhostOrientation;
+    private Directions currentGhostOrientation;
     private int speed = 2;
     private final Pacman pacman;
     private final Object monitor;
@@ -42,7 +39,6 @@ public class BlueGhost implements Runnable, Ghost {
     private int nodeTargetX;
     private int nodeTargetY;
 
-    boolean inGame;
     private JLabel blueGhostLabel;
     private volatile boolean paused = false;
 
@@ -52,15 +48,14 @@ public class BlueGhost implements Runnable, Ghost {
     private final TimeTracker frightTimeTracker;
     private GhostState ghostState;
 
-    public BlueGhost(int[][] board, Pacman pacman, boolean inGame, Object monitor){
+    public BlueGhost(int[][] board, Pacman pacman, Object monitor){
         loadImages();
         currentGhostImageIndex = 0;
-        currentGhostOrientation = 1;
+        currentGhostOrientation = Directions.RIGHT;
         this.pathfinding = new PathFinding(board);
         this.nodeTargetX = panelX;
         this.nodeTargetY = panelY;
         this.pacman = pacman;
-        this.inGame = inGame;
         this.monitor = monitor;
 
         blueGhostLabel = new JLabel(blueGhostImagesRight[0]);
@@ -88,16 +83,16 @@ public class BlueGhost implements Runnable, Ghost {
                     case SPAWN -> blueGhostLabel.setIcon(eyesGhostImages);
                     default -> {
                         switch (currentGhostOrientation) {
-                            case 0:
+                            case UP:
                                 blueGhostLabel.setIcon(blueGhostImagesUp[currentGhostImageIndex]);
                                 break;
-                            case 1:
+                            case RIGHT:
                                 blueGhostLabel.setIcon(blueGhostImagesRight[currentGhostImageIndex]);
                                 break;
-                            case 2:
+                            case DOWN:
                                 blueGhostLabel.setIcon(blueGhostImagesDown[currentGhostImageIndex]);
                                 break;
-                            case 3:
+                            case LEFT:
                                 blueGhostLabel.setIcon(blueGhostImagesLeft[currentGhostImageIndex]);
                                 break;
                         }
@@ -161,15 +156,14 @@ public class BlueGhost implements Runnable, Ghost {
         frightTimeTracker.start();
         while (inGame){
             checkPaused();
-            if (pacman.amountOfFoodConsumed >= getNumberOfFoodsLeft()/3){
-
-                //todo figure out where to move this
-                if (ghostState == GhostState.SPAWN && (getGhostCordX()/boardDimensions == startPositionX/boardDimensions && getGhostCordY()/boardDimensions == startPositionY/boardDimensions)){
-                    synchronized (monitor){
-                        ghostState = GhostState.CHASE;
-                        speed = 2;
-                    }
+            //todo figure out where to move this
+            if (ghostState == GhostState.SPAWN && (getGhostCordX()/boardDimensions == startPositionX/boardDimensions && getGhostCordY()/boardDimensions == startPositionY/boardDimensions)){
+                synchronized (monitor){
+                    ghostState = GhostState.CHASE;
+                    speed = 2;
                 }
+            }
+            if (pacman.amountOfFoodConsumed >= getNumberOfFoodsLeft()/3){
 
                 boolean isInCage = getGhostCordX() >= cageTopLeftX && getGhostCordX() <= cageBottomRightX  &&
                         getGhostCordY() >= cageTopLeftY && getGhostCordY() <= cageBottomRightY;
@@ -241,37 +235,35 @@ public class BlueGhost implements Runnable, Ghost {
 
     private void moveGhost(int targetX, int targetY){
         if (path == null || pathIndex >= path.size()) {
-            path = pathfinding.findPath(panelX / boardDimensions, panelY / boardDimensions, targetX / boardDimensions, targetY / boardDimensions);
-//            for (Node node: path) {
-//                System.out.println("Node " + node.x + " " + node.y);
-//            }
-//            System.out.println("Pathindex " + pathIndex);
-            pathIndex = 0;
+            synchronized (monitor){
+                path = pathfinding.findPath(panelX / boardDimensions, panelY / boardDimensions, targetX / boardDimensions, targetY / boardDimensions);
+                pathIndex = 0;
+            }
         }
 
         if (path != null && !path.isEmpty() && pathIndex <= path.size() - 1) {
             Node nextNode = path.get(pathIndex);
-            nodeTargetX = nextNode.x * boardDimensions;
-            nodeTargetY = nextNode.y * boardDimensions;
+            nodeTargetX = nextNode.getX() * boardDimensions;
+            nodeTargetY = nextNode.getY() * boardDimensions;
         }
 
         if (panelX < nodeTargetX) {
             panelX += speed;
-            currentGhostOrientation = 1;
+            currentGhostOrientation = Directions.RIGHT;
             if (panelX > nodeTargetX) panelX = nodeTargetX;
         } else if (panelX > nodeTargetX) {
             panelX -= speed;
-            currentGhostOrientation = 3;
+            currentGhostOrientation = Directions.LEFT;
             if (panelX < nodeTargetX) panelX = nodeTargetX;
         }
 
         if (panelY < nodeTargetY) {
             panelY += speed;
-            currentGhostOrientation = 2;
+            currentGhostOrientation = Directions.DOWN;
             if (panelY > nodeTargetY) panelY = nodeTargetY;
         } else if (panelY > nodeTargetY) {
             panelY -= speed;
-            currentGhostOrientation = 0;
+            currentGhostOrientation = Directions.UP;
             if (panelY < nodeTargetY) panelY = nodeTargetY;
         }
 
@@ -328,7 +320,7 @@ public class BlueGhost implements Runnable, Ghost {
             path = null;
             pathIndex = 0;
             currentGhostImageIndex = 0;
-            currentGhostOrientation = 1;
+            currentGhostOrientation = Directions.RIGHT;
             speed = 2;
             upgrades.clear();
         }

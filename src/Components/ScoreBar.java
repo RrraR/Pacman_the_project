@@ -3,35 +3,24 @@ package Components;
 import javax.swing.*;
 
 import java.awt.*;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import static Components.GameBoard.inGame;
+
 public class ScoreBar extends JPanel implements Runnable {
 
-    private Font pacmanFont;
-    private boolean inGame;
-    private GameBoard gameBoard;
-    private JLabel scoreTextLabel;
-    private JLabel scoreNumLabel;
-    private List<JLabel> livesLabels;
-    private ImageIcon heartIcon = new ImageIcon(getClass().getClassLoader().getResource("resources\\heart13.png"));
-//    private String score;
+    private final GameBoard gameBoard;
+    private final JLabel scoreTextLabel;
+    private final JLabel scoreNumLabel;
+    private final List<JLabel> livesLabels;
+    private final ImageIcon heartIcon = new ImageIcon(getClass().getClassLoader().getResource("resources\\other\\heart13.png"));
 
     public ScoreBar(GameBoard gameBoard){
         setPreferredSize(new Dimension(437, 50));
         this.setLayout(null);
         setBackground(Color.black);
 
-        try {
-            Font font = Font.createFont(Font.TRUETYPE_FONT, getClass().getClassLoader().getResource("resources\\fonts\\pacman.ttf").openStream());
-            pacmanFont = font.deriveFont(15f);
-        } catch (FontFormatException e) {
-            throw new RuntimeException(e);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        inGame = true;
         this.gameBoard = gameBoard;
 
         scoreTextLabel = new JLabel("HIGH SCORE");
@@ -43,7 +32,7 @@ public class ScoreBar extends JPanel implements Runnable {
 
         for (int i = 0; i < livesLabels.size(); i++){
             JLabel label = livesLabels.get(i);
-            label.setBounds(13 * i + 2, 12, 13, 13);
+            label.setBounds(15 * i + 10, 18, 13, 13);
             this.add(label);
         }
 
@@ -54,12 +43,10 @@ public class ScoreBar extends JPanel implements Runnable {
 
     private void initLabels(){
 
-        scoreTextLabel.setFont(pacmanFont);
         scoreTextLabel.setBackground(Color.black);
         scoreTextLabel.setForeground(Color.white);
         scoreTextLabel.setBounds(140, 12, 120, 25);
 
-        scoreNumLabel.setFont(pacmanFont);
         scoreNumLabel.setBackground(Color.black);
         scoreNumLabel.setForeground(Color.white);
         scoreNumLabel.setBounds(250, 12, 100, 25);
@@ -76,14 +63,13 @@ public class ScoreBar extends JPanel implements Runnable {
     }
 
     private void updateLivesCount(){
-        System.out.println("livesLabels.size() " + livesLabels.size());
         int lives = gameBoard.getPacmanLives();
         if (livesLabels.size() > lives){
             this.remove(livesLabels.getLast());
             livesLabels.removeLast();
         } else if (livesLabels.size() < lives) {
             JLabel label = new JLabel(heartIcon);
-            label.setBounds(13 * livesLabels.size() + 2, 12, 13, 13);
+            label.setBounds(15 * livesLabels.size() + 10, 18, 13, 13);
             livesLabels.add(label);
             this.add(label);
         }
@@ -99,7 +85,7 @@ public class ScoreBar extends JPanel implements Runnable {
                 Thread.sleep(30);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                inGame = false;
+//                inGame = false;
             }
         }
     }

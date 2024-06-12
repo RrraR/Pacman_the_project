@@ -1,9 +1,6 @@
 package Characters;
 
-import Components.GhostState;
-import Components.TimeTracker;
-import Components.Upgrade;
-import Components.UpgradeType;
+import Components.*;
 
 import javax.swing.*;
 import java.awt.*;
@@ -30,7 +27,7 @@ public class RedGhost implements Runnable, Ghost {
     private int panelY = 153;
 
     private int currentGhostImageIndex;
-    private int currentGhostOrientation;
+    private Directions currentGhostOrientation;
     private int speed = 2;
     private final Pacman pacman;
     private final Object monitor;
@@ -41,7 +38,6 @@ public class RedGhost implements Runnable, Ghost {
     private int nodeTargetX;
     private int nodeTargetY;
 
-    private boolean inGame;
     private final JLabel redGhostLabel;
     private volatile boolean paused = false;
 
@@ -51,15 +47,14 @@ public class RedGhost implements Runnable, Ghost {
     private final TimeTracker frightTimeTracker;
     private GhostState ghostState;
 
-    public RedGhost(int[][] board, Pacman pacman, boolean inGame, Object monitor){
+    public RedGhost(int[][] board, Pacman pacman, Object monitor){
         loadImages();
         currentGhostImageIndex = 0;
-        currentGhostOrientation = 1;
+        currentGhostOrientation = Directions.RIGHT;
         this.pathfinding = new PathFinding(board);
         this.nodeTargetX = panelX;
         this.nodeTargetY = panelY;
         this.pacman = pacman;
-        this.inGame = inGame;
         this.monitor = monitor;
 
         redGhostLabel = new JLabel(redGhostImagesRight[0]);
@@ -87,16 +82,16 @@ public class RedGhost implements Runnable, Ghost {
                     case SPAWN -> redGhostLabel.setIcon(eyesGhostImages);
                     default -> {
                         switch (currentGhostOrientation) {
-                            case 0:
+                            case UP:
                                 redGhostLabel.setIcon(redGhostImagesUp[currentGhostImageIndex]);
                                 break;
-                            case 1:
+                            case RIGHT:
                                 redGhostLabel.setIcon(redGhostImagesRight[currentGhostImageIndex]);
                                 break;
-                            case 2:
+                            case DOWN:
                                 redGhostLabel.setIcon(redGhostImagesDown[currentGhostImageIndex]);
                                 break;
-                            case 3:
+                            case LEFT:
                                 redGhostLabel.setIcon(redGhostImagesLeft[currentGhostImageIndex]);
                                 break;
                         }
@@ -253,33 +248,35 @@ public class RedGhost implements Runnable, Ghost {
 
     protected void moveGhost(int targetX, int targetY){
         if (path == null || pathIndex >= path.size() || (path.size()/5 <= pathIndex && path.size()/5 > 1)) {
-            path = pathfinding.findPath(panelX / boardDimensions, panelY / boardDimensions, targetX / boardDimensions, targetY / boardDimensions);
-            pathIndex = 0;
+            synchronized (monitor){
+                path = pathfinding.findPath(panelX / boardDimensions, panelY / boardDimensions, targetX / boardDimensions, targetY / boardDimensions);
+                pathIndex = 0;
+            }
         }
 
         if (path != null && !path.isEmpty() && pathIndex <= path.size() - 1) {
             Node nextNode = path.get(pathIndex);
-            nodeTargetX = nextNode.x * boardDimensions;
-            nodeTargetY = nextNode.y * boardDimensions;
+            nodeTargetX = nextNode.getX() * boardDimensions;
+            nodeTargetY = nextNode.getY() * boardDimensions;
         }
 
         if (panelX < nodeTargetX) {
             panelX += speed;
-            currentGhostOrientation = 1;
+            currentGhostOrientation = Directions.RIGHT;
             if (panelX > nodeTargetX) panelX = nodeTargetX;
         } else if (panelX > nodeTargetX) {
             panelX -= speed;
-            currentGhostOrientation = 3;
+            currentGhostOrientation = Directions.LEFT;
             if (panelX < nodeTargetX) panelX = nodeTargetX;
         }
 
         if (panelY < nodeTargetY) {
             panelY += speed;
-            currentGhostOrientation = 2;
+            currentGhostOrientation = Directions.DOWN;
             if (panelY > nodeTargetY) panelY = nodeTargetY;
         } else if (panelY > nodeTargetY) {
             panelY -= speed;
-            currentGhostOrientation = 0;
+            currentGhostOrientation = Directions.UP;
             if (panelY < nodeTargetY) panelY = nodeTargetY;
         }
 
@@ -336,7 +333,7 @@ public class RedGhost implements Runnable, Ghost {
             path = null;
             pathIndex = 0;
             currentGhostImageIndex = 0;
-            currentGhostOrientation = 1;
+            currentGhostOrientation = Directions.RIGHT;
             speed = 2;
             upgrades.clear();
         }

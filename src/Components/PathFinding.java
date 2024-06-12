@@ -1,13 +1,10 @@
-package Characters;
+package Components;
 
 import java.util.*;
 import java.util.List;
+import static Components.GameBoard.*;
 
 public class PathFinding {
-
-    final static int W=1; // Wall.
-    final static int F=2; // Crossroads with food
-    final static int E=3; // Empty crossroads
 
     private final int[][] board;
     private final int width;
@@ -34,7 +31,7 @@ public class PathFinding {
         while (!openList.isEmpty()) {
             Node currentNode = openList.poll();
 
-            if (currentNode.x == goalX && currentNode.y == goalY) {
+            if (currentNode.getX() == goalX && currentNode.getY() == goalY) {
                 return reconstructPath(currentNode);
             }
 
@@ -49,7 +46,7 @@ public class PathFinding {
 
                 if (!openList.contains(neighbor) || tentativeG < neighbor.g) {
                     neighbor.g = tentativeG;
-                    neighbor.h = calculateHeuristic(neighbor.x, neighbor.y, goalX, goalY);
+                    neighbor.h = calculateHeuristic(neighbor.getX(), neighbor.getY(), goalX, goalY);
                     neighbor.parent = currentNode;
 
                     if (!openList.contains(neighbor)) {
@@ -71,8 +68,8 @@ public class PathFinding {
                                {1, 0} };
 
         for (int[] direction : directions) {
-            int newX = node.x + direction[0];
-            int newY = node.y + direction[1];
+            int newX = node.getX() + direction[0];
+            int newY = node.getY() + direction[1];
 
             if (isWalkable(newX, newY)) {
                 neighbors.add(new Node(newX, newY, node, node.g + 1, 0));
@@ -102,38 +99,3 @@ public class PathFinding {
 
 }
 
-class Node implements Comparable<Node> {
-    int x, y;
-    int g, h;
-    Node parent;
-
-    public Node(int x, int y, Node parent, int g, int h) {
-        this.x = x;
-        this.y = y;
-        this.parent = parent;
-        this.g = g;
-        this.h = h;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (obj == null || getClass() != obj.getClass()) return false;
-        Node node = (Node) obj;
-        return x == node.x && y == node.y;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(x, y);
-    }
-
-    @Override
-    public int compareTo(Node other) {
-        return Integer.compare(this.getF(), other.getF());
-    }
-
-    public int getF() {
-        return g + h;
-    }
-}

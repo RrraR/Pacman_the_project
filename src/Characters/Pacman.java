@@ -22,35 +22,28 @@ public class Pacman implements Runnable {
     private final int initSpeedX = 3;
     private final int initSpeedY = 3;
     private int currentPacmanImageIndex;
-    private int currentPacmanOrientation;
+    private Directions currentPacmanOrientation;
     private ImageIcon[] pacmanImagesRight;
     private ImageIcon[] pacmanImagesLeft;
     private ImageIcon[] pacmanImagesUp;
     private ImageIcon[] pacmanImagesDown;
     private ImageIcon[] pacmanDeathImages;
-    private boolean inGame;
     public int lives = 3;
     public int amountOfFoodConsumed;
     private int currentPacmanDeathImageIndex;
     private JLabel pacmanLabel;
     private final Thread pacmanAnimationThread;
     private volatile boolean paused = false;
-//    private List<Upgrade> upgrades;
     public boolean isInvincible;
     public boolean isGhostEater;
     public int scoreMultiplier;
-//    private final TimeTracker timeTracker;
-//    private Upgrade currentUpgrade;
     private List<Upgrade> activeUpgrades;
     private volatile boolean isCheckActiveUpdatesThreadStarted = false;
 
-//    private final Thread checkActiveUpdatesThread;
-
-    public Pacman(boolean inGame, Object monitor){
+    public Pacman(Object monitor){
         loadImages();
         currentPacmanImageIndex = 0;
-        currentPacmanOrientation = 1;
-        this.inGame = inGame;
+        currentPacmanOrientation = Directions.RIGHT;
         this.monitor = monitor;
         amountOfFoodConsumed = 0;
         pacmanLabel = new JLabel(pacmanImagesRight[0]);
@@ -61,25 +54,23 @@ public class Pacman implements Runnable {
         isInvincible = false;
         isGhostEater = false;
         scoreMultiplier = 1;
-//        timeTracker = new TimeTracker();
         activeUpgrades = Collections.synchronizedList(new ArrayList<>());
-//        currentUpgrade = null;
     }
 
     private void updatePacmanIconLoop() {
         while (inGame){
             if (!paused){
                 switch (currentPacmanOrientation) {
-                    case 0:
+                    case UP:
                         pacmanLabel.setIcon(pacmanImagesUp[currentPacmanImageIndex]);
                         break;
-                    case 1:
+                    case RIGHT:
                         pacmanLabel.setIcon(pacmanImagesRight[currentPacmanImageIndex]);
                         break;
-                    case 2:
+                    case DOWN:
                         pacmanLabel.setIcon(pacmanImagesDown[currentPacmanImageIndex]);
                         break;
-                    case 3:
+                    case LEFT:
                         pacmanLabel.setIcon(pacmanImagesLeft[currentPacmanImageIndex]);
                         break;
                 }
@@ -145,16 +136,28 @@ public class Pacman implements Runnable {
         }
     }
 
+    public void removeLive(){
+        synchronized (monitor){
+            lives--;
+        }
+    }
+
+    public int getLives(){
+        synchronized (monitor){
+            return lives;
+        }
+    }
+
     private void removeUpgrade(Upgrade upgrade){
         synchronized (monitor){
             upgrade.stopUpgradeTimer();
             switch (upgrade.getType()) {
                 case SPEED_BOOST:
                     switch (currentPacmanOrientation) {
-                        case 0 -> currentSpeedY += 1;
-                        case 1 -> currentSpeedX -= 1;
-                        case 2 -> currentSpeedY -= 1;
-                        case 3 -> currentSpeedX += 1;
+                        case UP -> currentSpeedY += 1;
+                        case RIGHT -> currentSpeedX -= 1;
+                        case DOWN -> currentSpeedY -= 1;
+                        case LEFT -> currentSpeedX += 1;
                     }
                     break;
                 case EXTRA_LIFE:
@@ -213,10 +216,10 @@ public class Pacman implements Runnable {
             switch (upgrade.getType()) {
                 case SPEED_BOOST:
                     switch (currentPacmanOrientation) {
-                        case 0 -> currentSpeedY -= 1;
-                        case 1 -> currentSpeedX += 1;
-                        case 2 -> currentSpeedY += 1;
-                        case 3 -> currentSpeedX -= 1;
+                        case UP -> currentSpeedY -= 1;
+                        case RIGHT -> currentSpeedX += 1;
+                        case DOWN -> currentSpeedY += 1;
+                        case LEFT -> currentSpeedX -= 1;
                     }
                     break;
                 case EXTRA_LIFE:
@@ -259,7 +262,7 @@ public class Pacman implements Runnable {
     }
 
     public void deathAnimationLoop() {
-        currentPacmanDeathImageIndex = currentPacmanOrientation;
+        currentPacmanDeathImageIndex = currentPacmanOrientation.ordinal();
         for (int i = 0; i < 4; i++) {
             try {
                 pacmanLabel.setIcon(pacmanDeathImages[currentPacmanDeathImageIndex]);
@@ -287,7 +290,7 @@ public class Pacman implements Runnable {
         }
     }
 
-    public int getPacmanOrientation(){
+    public Directions getPacmanOrientation(){
         synchronized (monitor) {
             return currentPacmanOrientation;
         }
@@ -296,12 +299,12 @@ public class Pacman implements Runnable {
     public void updateAmountOfFoodEaten(){
         amountOfFoodConsumed++;
     }
-
+//todo does this need synchronization??
     public void setMoveRight(){
         if (board[panelY/boardDimensions][(panelX)/boardDimensions + 1] != W) {
             currentSpeedY = 0;
             currentSpeedX = initSpeedX;
-            currentPacmanOrientation = 1;
+            currentPacmanOrientation = Directions.RIGHT;
         }
     }
 
@@ -309,7 +312,7 @@ public class Pacman implements Runnable {
         if (board[panelY / boardDimensions][(panelX + 13)/ boardDimensions - 1] != W){
             currentSpeedX = -initSpeedX;
             currentSpeedY = 0;
-            currentPacmanOrientation = 3;
+            currentPacmanOrientation = Directions.LEFT;
         }
     }
 
@@ -317,7 +320,7 @@ public class Pacman implements Runnable {
         if (board[panelY/boardDimensions - 1][panelX/boardDimensions] != W){
             currentSpeedY = -initSpeedY;
             currentSpeedX = 0;
-            currentPacmanOrientation = 0;
+            currentPacmanOrientation = Directions.UP;
         }
     }
 
@@ -325,7 +328,7 @@ public class Pacman implements Runnable {
         if (board[panelY/boardDimensions + 1][panelX/boardDimensions] != W){
             currentSpeedX = 0;
             currentSpeedY = initSpeedY;
-            currentPacmanOrientation = 2;
+            currentPacmanOrientation = Directions.DOWN;
         }
     }
 
@@ -335,7 +338,7 @@ public class Pacman implements Runnable {
             panelY = startPositionY;
             currentSpeedX = 3;
             currentSpeedY = 0;
-            currentPacmanOrientation = 1;
+            currentPacmanOrientation = Directions.RIGHT;
             currentPacmanImageIndex = 0;
             amountOfFoodConsumed = 0;
             activeUpgrades.clear();
@@ -346,38 +349,35 @@ public class Pacman implements Runnable {
 
     private void recenterPacman() {
         // recenter horizontally
-        if (currentPacmanOrientation == 0 || currentPacmanOrientation == 2) {
+        if (currentPacmanOrientation == Directions.UP || currentPacmanOrientation == Directions.DOWN) {
             int offsetX = (panelX % boardDimensions < boardDimensions / 2) ? -(panelX % boardDimensions) : (boardDimensions - panelX % boardDimensions);
             panelX += offsetX + 3;
         }
 
         // recenter vertically
-        if (currentPacmanOrientation == 1 || currentPacmanOrientation == 3) {
+        if (currentPacmanOrientation == Directions.RIGHT || currentPacmanOrientation == Directions.LEFT) {
             int offsetY = (panelY % boardDimensions < boardDimensions / 2) ? -(panelY % boardDimensions) : (boardDimensions - panelY % boardDimensions);
             panelY += offsetY + 3;
         }
     }
 
     private boolean checkCollision(){
-//        System.out.println(" panel:" + board[panelY/18][panelX/18] + ", row: " + panelY/18 + " cord y: " + panelY+ ", col: " + panelX/18 +  " cord x: " + panelX );
-
-        // TODO: refactor orientations for all characters to be enum like Direction.LEFT
-        if (currentPacmanOrientation == 0 && board[(panelY + boardDimensions - 3)/ boardDimensions - 1][panelX/ boardDimensions] == 1){
+        if (currentPacmanOrientation == Directions.UP && board[(panelY + boardDimensions - 3)/ boardDimensions - 1][panelX/ boardDimensions] == 1){
             currentSpeedY = 0;
             currentSpeedX = 0;
             return true;
         }
-        if (currentPacmanOrientation == 1 && board[panelY/ boardDimensions][(panelX)/ boardDimensions + 1] == 1) {
+        if (currentPacmanOrientation == Directions.RIGHT && board[panelY/ boardDimensions][(panelX)/ boardDimensions + 1] == 1) {
             currentSpeedY = 0;
             currentSpeedX = 0;
             return true;
         }
-        if (currentPacmanOrientation == 2 && board[(panelY - 1)/ boardDimensions + 1][panelX/ boardDimensions] == 1) {
+        if (currentPacmanOrientation == Directions.DOWN && board[(panelY - 1)/ boardDimensions + 1][panelX/ boardDimensions] == 1) {
             currentSpeedY = 0;
             currentSpeedX = 0;
             return true;
         }
-        if (currentPacmanOrientation == 3 && board[panelY / boardDimensions][(panelX + boardDimensions - 3)/ boardDimensions - 1] == 1){
+        if (currentPacmanOrientation == Directions.LEFT && board[panelY / boardDimensions][(panelX + boardDimensions - 3)/ boardDimensions - 1] == 1){
             currentSpeedY = 0;
             currentSpeedX = 0;
             return true;

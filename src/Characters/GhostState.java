@@ -1,4 +1,4 @@
-package Components;
+package Characters;
 
 public enum GhostState {
     CHASE,

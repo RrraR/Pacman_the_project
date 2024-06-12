@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/Pacman.iml" filepath="$PROJECT_DIR$/Pacman.iml" />
+      <module fileurl="file://$PROJECT_DIR$/PacmanGame.iml" filepath="$PROJECT_DIR$/PacmanGame.iml" />
     </modules>
   </component>
 </project>

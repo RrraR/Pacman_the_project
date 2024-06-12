@@ -1,7 +1,5 @@
 package Characters;
 
-import Components.GhostState;
-
 public interface Ghost {
 
     private void moveGhost(int targetX, int targetY){};

@@ -1,9 +1,6 @@
 package Characters;
 
-import Components.GhostState;
-import Components.TimeTracker;
-import Components.Upgrade;
-import Components.UpgradeType;
+import Components.*;
 
 import javax.swing.*;
 import java.awt.*;
@@ -30,7 +27,7 @@ public class PinkGhost implements Runnable, Ghost {
     private int panelY = 209;
 
     private int currentGhostImageIndex;
-    private int currentGhostOrientation;
+    private Directions currentGhostOrientation;
     private int speed = 2;
     private final Pacman pacman;
     private final Object monitor;
@@ -41,7 +38,6 @@ public class PinkGhost implements Runnable, Ghost {
     private int nodeTargetX;
     private int nodeTargetY;
 
-    private boolean inGame;
     private JLabel pinkGhostLabel;
     private volatile boolean paused = false;
 
@@ -51,15 +47,14 @@ public class PinkGhost implements Runnable, Ghost {
     private final TimeTracker frightTimeTracker;
     private GhostState ghostState;
 
-    public PinkGhost(int[][] board, Pacman pacman, boolean inGame, Object monitor){
+    public PinkGhost(int[][] board, Pacman pacman, Object monitor){
         loadImages();
         currentGhostImageIndex = 0;
-        currentGhostOrientation = 1;
+        currentGhostOrientation = Directions.RIGHT;
         this.pathfinding = new PathFinding(board);
         this.nodeTargetX = panelX;
         this.nodeTargetY = panelY;
         this.pacman = pacman;
-        this.inGame = inGame;
         this.monitor = monitor;
 
         pinkGhostLabel = new JLabel(pinkGhostImagesRight[0]);
@@ -87,16 +82,16 @@ public class PinkGhost implements Runnable, Ghost {
                     case SPAWN -> pinkGhostLabel.setIcon(eyesGhostImages);
                     default -> {
                         switch (currentGhostOrientation) {
-                            case 0:
+                            case UP:
                                 pinkGhostLabel.setIcon(pinkGhostImagesUp[currentGhostImageIndex]);
                                 break;
-                            case 1:
+                            case RIGHT:
                                 pinkGhostLabel.setIcon(pinkGhostImagesRight[currentGhostImageIndex]);
                                 break;
-                            case 2:
+                            case DOWN:
                                 pinkGhostLabel.setIcon(pinkGhostImagesDown[currentGhostImageIndex]);
                                 break;
-                            case 3:
+                            case LEFT:
                                 pinkGhostLabel.setIcon(pinkGhostImagesLeft[currentGhostImageIndex]);
                                 break;
                         }
@@ -234,7 +229,8 @@ public class PinkGhost implements Runnable, Ghost {
             case SPAWN:
                 return new int[]{startPositionX, startPositionY};
             default:
-                int pacmanPosX, pacmanPosY, pacmanOrientation;
+                int pacmanPosX, pacmanPosY;
+                 Directions pacmanOrientation;
                 synchronized (monitor){
                     pacmanPosX = pacman.getPacmanCordX();
                     pacmanPosY = pacman.getPacmanCordY();
@@ -245,12 +241,12 @@ public class PinkGhost implements Runnable, Ghost {
                 int targetPacmanY = pacmanPosY;
                 for (int i = 0; i < 4; i++) {
                     switch (pacmanOrientation) {
-                        case 0:
+                        case UP:
                             if (targetPacmanY - boardDimensions > 0 && board[(targetPacmanY - boardDimensions) / boardDimensions][pacmanPosX / boardDimensions] != 1) {
                                 targetPacmanY -= boardDimensions;
                             }
                             break;
-                        case 1:
+                        case RIGHT:
                             if (targetPacmanX + boardDimensions >= board[0].length * boardDimensions ) {
                                 targetPacmanX = boardDimensions * 4;
                                 break;
@@ -260,12 +256,12 @@ public class PinkGhost implements Runnable, Ghost {
                                 targetPacmanX += boardDimensions;
                             }
                             break;
-                        case 2:
+                        case DOWN:
                             if (targetPacmanY + boardDimensions < boardDimensions * board.length && board[(targetPacmanY + boardDimensions) / boardDimensions][pacmanPosX / boardDimensions] != 1) {
                                 targetPacmanY += boardDimensions;
                             }
                             break;
-                        case 3:
+                        case LEFT:
                             if (targetPacmanX - boardDimensions <= 0) {
                                 targetPacmanX = board[0].length * boardDimensions - boardDimensions * 4;
                                 break;
@@ -288,33 +284,35 @@ public class PinkGhost implements Runnable, Ghost {
 
     private void moveGhost(int targetX, int targetY){
         if (path == null || pathIndex >= path.size() || (path.size()/6 <= pathIndex && path.size()/6 > 1)) {
-            path = pathfinding.findPath(panelX / boardDimensions, panelY / boardDimensions, targetX / boardDimensions, targetY / boardDimensions);
-            pathIndex = 0;
+            synchronized (monitor){
+                path = pathfinding.findPath(panelX / boardDimensions, panelY / boardDimensions, targetX / boardDimensions, targetY / boardDimensions);
+                pathIndex = 0;
+            }
         }
 
         if (path != null && !path.isEmpty() && pathIndex <= path.size() - 1) {
             Node nextNode = path.get(pathIndex);
-            nodeTargetX = nextNode.x * boardDimensions;
-            nodeTargetY = nextNode.y * boardDimensions;
+            nodeTargetX = nextNode.getX() * boardDimensions;
+            nodeTargetY = nextNode.getY() * boardDimensions;
         }
 
         if (panelX < nodeTargetX) {
             panelX += speed;
-            currentGhostOrientation = 1;
+            currentGhostOrientation = Directions.RIGHT;
             if (panelX > nodeTargetX) panelX = nodeTargetX;
         } else if (panelX > nodeTargetX) {
             panelX -= speed;
-            currentGhostOrientation = 3;
+            currentGhostOrientation = Directions.LEFT;
             if (panelX < nodeTargetX) panelX = nodeTargetX;
         }
 
         if (panelY < nodeTargetY) {
             panelY += speed;
-            currentGhostOrientation = 2;
+            currentGhostOrientation = Directions.DOWN;
             if (panelY > nodeTargetY) panelY = nodeTargetY;
         } else if (panelY > nodeTargetY) {
             panelY -= speed;
-            currentGhostOrientation = 0;
+            currentGhostOrientation = Directions.UP;
             if (panelY < nodeTargetY) panelY = nodeTargetY;
         }
 
@@ -371,7 +369,7 @@ public class PinkGhost implements Runnable, Ghost {
             path = null;
             pathIndex = 0;
             currentGhostImageIndex = 0;
-            currentGhostOrientation = 1;
+            currentGhostOrientation = Directions.RIGHT;
             speed = 2;
             upgrades.clear();
         }
