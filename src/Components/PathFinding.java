@@ -7,7 +7,6 @@ import static Components.GameBoard.board;
 
 public class PathFinding {
 
-//    private final int[][] board;
     private final int width;
     private final int height;
 

@@ -12,11 +12,10 @@ import java.util.List;
 
 import static Components.HighScoresManager.loadHighScores;
 
-public class PacmanGame implements GameEventListener {
+public class PacmanGame {
 
     public JFrame frame;
     private JPanel startGamePanel;
-    private JPanel gamePanel;
     private JScrollPane highScoresPanel;
     private String[] boardSized = { "23x24", "27x18", "21x21", "31x11", "15x21"};
 
@@ -25,10 +24,7 @@ public class PacmanGame implements GameEventListener {
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setBackground(Color.black);
         frame.setLayout(new CardLayout());
-//        frame.setResizable(false);
         frame.setFocusable(true);
-        //todo pass size from calculations based on the board
-//        frame.setPreferredSize(new Dimension(437, 542));
 
         try {
             Font font = Font.createFont(Font.TRUETYPE_FONT, getClass().getClassLoader().getResource("resources\\fonts\\pacman.ttf").openStream());
@@ -140,29 +136,9 @@ public class PacmanGame implements GameEventListener {
         if (selectedBoardSize == null){
             return;
         }
-        gamePanel = new JPanel();
-        gamePanel.setLayout(new BorderLayout());
-        GameBoard gameBoard = new GameBoard(this, selectedBoardSize);
-        ScoreBar scoreBar = new ScoreBar(gameBoard);
-        gamePanel.add(scoreBar, BorderLayout.NORTH);
-        gamePanel.add(gameBoard);
-        gamePanel.setFocusable(true);
-        gamePanel.addKeyListener(gameBoard);
-        Dimension gameBoardDimensions = gameBoard.getPreferredSize();
-        Dimension scoreBarDimensions = scoreBar.getPreferredSize();
-        gamePanel.setPreferredSize(new Dimension(gameBoardDimensions.width, gameBoardDimensions.height + scoreBarDimensions.height));
 
-        frame.add(gamePanel, "GameScreen");
-
-        CardLayout cl = (CardLayout) frame.getContentPane().getLayout();
-        cl.show(frame.getContentPane(), "GameScreen");
-        frame.pack();
-
-        gamePanel.requestFocusInWindow();
-        Thread gameBoardThread = new Thread(gameBoard);
-        Thread scoreBarThread = new Thread(scoreBar);
-        gameBoardThread.start();
-        scoreBarThread.start();
+        GameFrame gameFrame = new GameFrame(selectedBoardSize);
+        gameFrame.setVisible(true);
     }
 
     private void createHighScoresPanel() {
@@ -233,11 +209,6 @@ public class PacmanGame implements GameEventListener {
         CardLayout cl = (CardLayout) frame.getContentPane().getLayout();
         cl.show(frame.getContentPane(), "StartScreen");
         frame.pack();
-    }
-
-    @Override
-    public void onEscapePressed() {
-        showStartScreen();
     }
 
     public static void main(String[] args){

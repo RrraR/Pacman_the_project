@@ -31,7 +31,7 @@ public class PinkGhost implements Runnable, Ghost {
 
     private int currentGhostImageIndex;
     private Directions currentGhostOrientation;
-    private int initSpeed = 2;
+    private final int initSpeed = 2;
     private int speed = initSpeed;
     private final Pacman pacman;
     private final Object monitor;
@@ -42,7 +42,7 @@ public class PinkGhost implements Runnable, Ghost {
     private int nodeTargetX;
     private int nodeTargetY;
 
-    private JLabel pinkGhostLabel;
+    private final JLabel pinkGhostLabel;
     private volatile boolean paused = false;
 
     private final TimeTracker upgradesTimeTracker;
@@ -53,7 +53,7 @@ public class PinkGhost implements Runnable, Ghost {
 
     public PinkGhost(Pacman pacman, Object monitor, String boardSize){
         loadImages();
-        initInitialVals(boardSize);
+        initInitialCoords(boardSize);
         currentGhostImageIndex = 0;
         currentGhostOrientation = Directions.RIGHT;
         this.pathfinding = new PathFinding();
@@ -73,7 +73,7 @@ public class PinkGhost implements Runnable, Ghost {
         ghostState = GhostState.CHASE;
     }
 
-    private void initInitialVals(String boardSize){
+    private void initInitialCoords(String boardSize){
         switch (boardSize){
             case "23x24":
                 startPositionX = 213;
@@ -206,7 +206,6 @@ public class PinkGhost implements Runnable, Ghost {
         while (inGame){
             checkPaused();
 
-            //todo figure out where to move this
             if (ghostState == GhostState.SPAWN && (getGhostCordX()/boardDimensions == startPositionX/boardDimensions && getGhostCordY()/boardDimensions == startPositionY/boardDimensions)){
                 synchronized (monitor){
                     ghostState = GhostState.CHASE;
@@ -395,7 +394,7 @@ public class PinkGhost implements Runnable, Ghost {
         }
     }
 
-    public JLabel getPinkGhostLabel() {
+    public JLabel getGhostLabel() {
         return pinkGhostLabel;
     }
 

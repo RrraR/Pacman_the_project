@@ -31,7 +31,7 @@ public class RedGhost implements Runnable, Ghost {
 
     private int currentGhostImageIndex;
     private Directions currentGhostOrientation;
-    private int initSpeed = 2;
+    private final int initSpeed = 2;
     private int speed = initSpeed;
     private final Pacman pacman;
     private final Object monitor;
@@ -53,7 +53,7 @@ public class RedGhost implements Runnable, Ghost {
 
     public RedGhost(Pacman pacman, Object monitor, String boardSize){
         loadImages();
-        initInitialVals(boardSize);
+        initInitialCoords(boardSize);
         currentGhostImageIndex = 0;
         currentGhostOrientation = Directions.RIGHT;
         this.pathfinding = new PathFinding();
@@ -73,7 +73,7 @@ public class RedGhost implements Runnable, Ghost {
         ghostState = GhostState.CHASE;
     }
 
-    private void initInitialVals(String boardSize){
+    private void initInitialCoords(String boardSize){
         switch (boardSize){
             case "23x24":
                 startPositionX = 215;
@@ -206,7 +206,6 @@ public class RedGhost implements Runnable, Ghost {
         while (inGame){
             checkPaused();
 
-            //todo figure out where to move this
             if (ghostState == GhostState.SPAWN && (getGhostCordX()/boardDimensions == returnToSpawnX/boardDimensions && getGhostCordY()/boardDimensions == returnToSpawnY/boardDimensions)){
                 synchronized (monitor){
                     ghostState = GhostState.CHASE;
@@ -219,8 +218,6 @@ public class RedGhost implements Runnable, Ghost {
 
             if (isInCage){
                 moveGhost(startPositionX, startPositionY);
-//                ghostState = GhostState.CHASE;
-//                speed = 2;
             }else {
                 int[] ghostTarget = getGhostTarget();
                 moveGhost(ghostTarget[0], ghostTarget[1]);
@@ -352,7 +349,7 @@ public class RedGhost implements Runnable, Ghost {
         }
     }
 
-    public JLabel getRedGhostLabel() {
+    public JLabel getGhostLabel() {
         return redGhostLabel;
     }
 

@@ -32,7 +32,7 @@ public class BlueGhost implements Runnable, Ghost {
 
     private int currentGhostImageIndex;
     private Directions currentGhostOrientation;
-    private int initSpeed = 2;
+    private final int initSpeed = 2;
     private int speed = initSpeed;
     private final Pacman pacman;
     private final Object monitor;
@@ -43,7 +43,7 @@ public class BlueGhost implements Runnable, Ghost {
     private int nodeTargetX;
     private int nodeTargetY;
 
-    private JLabel blueGhostLabel;
+    private final JLabel blueGhostLabel;
     private volatile boolean paused = false;
 
     private final TimeTracker upgradesTimeTracker;
@@ -54,7 +54,7 @@ public class BlueGhost implements Runnable, Ghost {
 
     public BlueGhost(Pacman pacman, Object monitor, String boardSize){
         loadImages();
-        initInitialVals(boardSize);
+        initInitialCoords(boardSize);
         currentGhostImageIndex = 0;
         currentGhostOrientation = Directions.RIGHT;
         this.pathfinding = new PathFinding();
@@ -74,7 +74,7 @@ public class BlueGhost implements Runnable, Ghost {
         ghostState = GhostState.CHASE;
     }
 
-    private void initInitialVals(String boardSize){
+    private void initInitialCoords(String boardSize){
         switch (boardSize){
             case "23x24":
                 startPositionX = 186;
@@ -206,13 +206,14 @@ public class BlueGhost implements Runnable, Ghost {
         frightTimeTracker.start();
         while (inGame){
             checkPaused();
-            //todo figure out where to move this
+
             if (ghostState == GhostState.SPAWN && (getGhostCordX()/boardDimensions == startPositionX/boardDimensions && getGhostCordY()/boardDimensions == startPositionY/boardDimensions)){
                 synchronized (monitor){
                     ghostState = GhostState.CHASE;
                     speed = initSpeed;
                 }
             }
+
             if (pacman.amountOfFoodConsumed >= getNumberOfFoodsLeft()/3){
 
                 boolean isInCage = getGhostCordX() >= cageTopLeftX && getGhostCordX() <= cageBottomRightX  &&
@@ -346,7 +347,7 @@ public class BlueGhost implements Runnable, Ghost {
         }
     }
 
-    public JLabel getBlueGhostLabel() {
+    public JLabel getGhostLabel() {
         return blueGhostLabel;
     }
 

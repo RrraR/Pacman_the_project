@@ -1,15 +1,21 @@
 package Characters;
 
+import Components.Upgrade;
+
+import javax.swing.*;
+import java.util.List;
+
 public interface Ghost {
-
-    private void moveGhost(int targetX, int targetY){};
-    private void loadImages(){}
-
-    public int getGhostCordX();
-    public int getGhostCordY();
-    public GhostState getGhostState();
-
-    public void resetPosition();
-    public void ghostHasBeenEaten();
+    void removeProcessedUpgrades();
+    void startFrightenedState();
+    void ghostHasBeenEaten();
+    GhostState getGhostState();
+    void pause();
+    void resume();
+    List<Upgrade> getUpgrades();
+    JLabel getGhostLabel();
+    int getGhostCordX();
+    int getGhostCordY();
+    void resetPosition();
 
 }

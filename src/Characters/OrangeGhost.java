@@ -31,7 +31,7 @@ public class OrangeGhost implements Runnable, Ghost {
 
     private int currentGhostImageIndex;
     private Directions currentGhostOrientation;
-    private int initSpeed = 2;
+    private final int initSpeed = 2;
     private int speed = initSpeed;
     private final Pacman pacman;
     private final Object monitor;
@@ -42,7 +42,7 @@ public class OrangeGhost implements Runnable, Ghost {
     private int nodeTargetX;
     private int nodeTargetY;
 
-    private JLabel orangeGhostLabel;
+    private final JLabel orangeGhostLabel;
     private volatile boolean paused = false;
 
     private final TimeTracker upgradesTimeTracker;
@@ -53,7 +53,7 @@ public class OrangeGhost implements Runnable, Ghost {
 
     public OrangeGhost(Pacman pacman, Object monitor, String boardSize){
         loadImages();
-        initInitialVals(boardSize);
+        initInitialCoords(boardSize);
         currentGhostImageIndex = 0;
         currentGhostOrientation = Directions.RIGHT;
         this.pathfinding = new PathFinding();
@@ -73,7 +73,7 @@ public class OrangeGhost implements Runnable, Ghost {
         ghostState = GhostState.CHASE;
     }
 
-    private void initInitialVals(String boardSize){
+    private void initInitialCoords(String boardSize){
         switch (boardSize){
             case "23x24":
                 startPositionX = 240;
@@ -205,15 +205,15 @@ public class OrangeGhost implements Runnable, Ghost {
         frightTimeTracker.start();
         while (inGame){
             checkPaused();
-            if (pacman.amountOfFoodConsumed >= (getNumberOfFoodsLeft() * 2)/3){
 
-                //todo figure out where to move this
-                if (ghostState == GhostState.SPAWN && (getGhostCordX()/boardDimensions == startPositionX/boardDimensions && panelY/boardDimensions == startPositionY/boardDimensions)){
-                    synchronized (monitor) {
-                        ghostState = GhostState.CHASE;
-                        speed = initSpeed;
-                    }
+            if (ghostState == GhostState.SPAWN && (getGhostCordX()/boardDimensions == startPositionX/boardDimensions && panelY/boardDimensions == startPositionY/boardDimensions)){
+                synchronized (monitor) {
+                    ghostState = GhostState.CHASE;
+                    speed = initSpeed;
                 }
+            }
+
+            if (pacman.amountOfFoodConsumed >= (getNumberOfFoodsLeft() * 2)/3){
 
                 boolean isInCage = getGhostCordX() >= cageTopLeftX && getGhostCordX() <= cageBottomRightX  &&
                         getGhostCordY() >= cageTopLeftY && getGhostCordY() <= cageBottomRightY;
@@ -361,7 +361,7 @@ public class OrangeGhost implements Runnable, Ghost {
         }
     }
 
-    public JLabel getOrangeGhostLabel() {
+    public JLabel getGhostLabel() {
         return orangeGhostLabel;
     }
 

@@ -19,12 +19,4 @@ public class HighScore implements Serializable {
     public int getScore() {
         return score;
     }
-//
-//    @Override
-//    public String toString() {
-//        return "HighScore{" +
-//                "playerName='" + playerName + '\'' +
-//                ", score=" + score +
-//                '}';
-//    }
 }

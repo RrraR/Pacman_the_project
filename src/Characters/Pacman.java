@@ -193,10 +193,10 @@ public class Pacman implements Runnable {
             switch (upgrade.getType()) {
                 case SPEED_BOOST:
                     switch (currentPacmanOrientation) {
-                        case UP -> currentSpeedY += 1;
-                        case RIGHT -> currentSpeedX -= 1;
-                        case DOWN -> currentSpeedY -= 1;
-                        case LEFT -> currentSpeedX += 1;
+                        case UP -> currentSpeedY = -initSpeedY;
+                        case RIGHT -> currentSpeedX = initSpeedX;
+                        case DOWN -> currentSpeedY = initSpeedY;
+                        case LEFT -> currentSpeedX = -initSpeedX;
                     }
                     break;
                 case EXTRA_LIFE:
@@ -255,10 +255,10 @@ public class Pacman implements Runnable {
             switch (upgrade.getType()) {
                 case SPEED_BOOST:
                     switch (currentPacmanOrientation) {
-                        case UP -> currentSpeedY -= 1;
-                        case RIGHT -> currentSpeedX += 1;
-                        case DOWN -> currentSpeedY += 1;
-                        case LEFT -> currentSpeedX -= 1;
+                        case UP -> currentSpeedY = -initSpeedY - 1;
+                        case RIGHT -> currentSpeedX = initSpeedX + 1;
+                        case DOWN -> currentSpeedY = initSpeedY + 1;
+                        case LEFT -> currentSpeedX = -initSpeedX - 1;
                     }
                     break;
                 case EXTRA_LIFE:
@@ -341,33 +341,41 @@ public class Pacman implements Runnable {
 //todo does this need synchronization??
     public void setMoveRight(){
         if (board[panelY/boardDimensions][(panelX)/boardDimensions + 1] != W) {
-            currentSpeedY = 0;
-            currentSpeedX = initSpeedX;
-            currentPacmanOrientation = Directions.RIGHT;
+            synchronized (monitor){
+                currentSpeedY = 0;
+                currentSpeedX = initSpeedX;
+                currentPacmanOrientation = Directions.RIGHT;
+            }
         }
     }
 
     public void setMoveLeft(){
         if (board[panelY / boardDimensions][(panelX + 13)/ boardDimensions - 1] != W){
-            currentSpeedX = -initSpeedX;
-            currentSpeedY = 0;
-            currentPacmanOrientation = Directions.LEFT;
+            synchronized (monitor){
+                currentSpeedX = -initSpeedX;
+                currentSpeedY = 0;
+                currentPacmanOrientation = Directions.LEFT;
+            }
         }
     }
 
     public void setMoveUp(){
         if (board[panelY/boardDimensions - 1][panelX/boardDimensions] != W){
-            currentSpeedY = -initSpeedY;
-            currentSpeedX = 0;
-            currentPacmanOrientation = Directions.UP;
+            synchronized (monitor){
+                currentSpeedY = -initSpeedY;
+                currentSpeedX = 0;
+                currentPacmanOrientation = Directions.UP;
+            }
         }
     }
 
     public void setMoveDown(){
         if (board[panelY/boardDimensions + 1][panelX/boardDimensions] != W){
-            currentSpeedX = 0;
-            currentSpeedY = initSpeedY;
-            currentPacmanOrientation = Directions.DOWN;
+            synchronized (monitor){
+                currentSpeedX = 0;
+                currentSpeedY = initSpeedY;
+                currentPacmanOrientation = Directions.DOWN;
+            }
         }
     }
 
@@ -401,7 +409,7 @@ public class Pacman implements Runnable {
     }
 
     private boolean checkCollision(){
-        if (currentPacmanOrientation == Directions.UP && board[(panelY + boardDimensions - 3)/ boardDimensions - 1][panelX/ boardDimensions] == 1){
+        if (currentPacmanOrientation == Directions.UP && board[(panelY + boardDimensions - 4)/ boardDimensions - 1][panelX/ boardDimensions] == 1){
             currentSpeedY = 0;
             currentSpeedX = 0;
             return true;
@@ -416,7 +424,7 @@ public class Pacman implements Runnable {
             currentSpeedX = 0;
             return true;
         }
-        if (currentPacmanOrientation == Directions.LEFT && board[panelY / boardDimensions][(panelX + boardDimensions - 3)/ boardDimensions - 1] == 1){
+        if (currentPacmanOrientation == Directions.LEFT && board[panelY / boardDimensions][(panelX + boardDimensions - 4)/ boardDimensions - 1] == 1){
             currentSpeedY = 0;
             currentSpeedX = 0;
             return true;
