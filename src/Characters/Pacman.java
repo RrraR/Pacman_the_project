@@ -18,8 +18,8 @@ public class Pacman implements Runnable {
     private final Object monitor;
     private int panelX;
     private int panelY;
-    private int initSpeedX = 3;
-    private int initSpeedY = 3;
+    private final int initSpeedX = 3;
+    private final int initSpeedY = 3;
     private int currentSpeedX = initSpeedX;
     private int currentSpeedY = 0;
     private int currentPacmanImageIndex;
@@ -94,12 +94,10 @@ public class Pacman implements Runnable {
         }
     }
 
-    public void updateSpeed(){
-        synchronized (monitor){
-            initSpeedY++;
-            initSpeedX++;
-        }
-    }
+//    public void updateSpeed(){
+//        initSpeedY = 4;
+//        initSpeedX = 4;
+//    }
 
     private void updatePacmanIconLoop() {
         while (inGame){
@@ -150,7 +148,7 @@ public class Pacman implements Runnable {
 
                     //wall passing
                     if (panelX <= 0){
-                        panelX = board[0].length * boardDimensions - 19;
+                        panelX = board[0].length * boardDimensions - 13;
                     } else if (panelX >= board[0].length * boardDimensions - 13) {
                         panelX = 0;
                     }

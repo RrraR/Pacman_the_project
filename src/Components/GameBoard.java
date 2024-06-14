@@ -49,10 +49,9 @@ public class GameBoard extends JPanel implements KeyListener, Runnable {
     private List<Upgrade> upgrades;
     private int consecutiveGhostsEaten = 0;
     private GameEventListener listener;
-    private String boardSize;
+
 
     public GameBoard(GameEventListener listener, String boardSize) {
-        this.boardSize = boardSize;
         initBoard(boardSize);
         this.listener = listener;
         mapHeight = board.length * boardDimensions;
@@ -60,7 +59,7 @@ public class GameBoard extends JPanel implements KeyListener, Runnable {
         this.setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
         this.setBackground(Color.black);
         foodCells = new ArrayList<>();
-//        getAllFoodCells();
+        getAllFoodCells();
         inGame = true;
         foodImage = new ImageIcon(getClass().getClassLoader().getResource("resources\\food13\\food2.png"));
         powerFoodImage = new ImageIcon(getClass().getClassLoader().getResource("resources\\food13\\Pfood.png"));
@@ -148,9 +147,7 @@ public class GameBoard extends JPanel implements KeyListener, Runnable {
                 cageBottomRightY = 266;
                 break;
         }
-        getAllFoodCells();
     }
-
     private static int[][] getBoardCopy(int[][] original) {
         int[][] copy = new int[original.length][];
         for (int i = 0; i < original.length; i++) {
@@ -319,8 +316,6 @@ public class GameBoard extends JPanel implements KeyListener, Runnable {
             throw new RuntimeException(e);
         }
 
-//        System.out.println(foodCells.size());
-
         pacmanThread.start();
         redGhostThread.start();
         pinkGhostThread.start();
@@ -340,8 +335,8 @@ public class GameBoard extends JPanel implements KeyListener, Runnable {
                 consecutiveGhostsEaten = 0;
             }
 
-            if(getNumberOfFoodsLeft() <= 200){
-                currentGameOver();
+            if(getNumberOfFoodsLeft() <= 0){
+                gameWon();
             }
 
             checkFoodAndUpgradesCells();
@@ -399,7 +394,7 @@ public class GameBoard extends JPanel implements KeyListener, Runnable {
 
                 pacman.removeLive();
                 if (pacman.getLives() <= 0) {
-                    currentGameOver();
+                    gameOver();
                 } else {
                     resetPositions();
                     try {
@@ -412,42 +407,27 @@ public class GameBoard extends JPanel implements KeyListener, Runnable {
         }
     }
 
-    private void currentGameOver(){
-        if (pacman.getLives() <= 0){
-            synchronized (monitor){
-                inGame = false;
-            }
-            String nameInput = (String) JOptionPane.showInputDialog(this, "What is your name?", "Game Over", JOptionPane.QUESTION_MESSAGE, gameOverImage, null,null);
-            if (nameInput != null){
-                HighScoresManager.saveHighScore(new HighScore(nameInput, score));
-            }
-        } else{
-//            stopCharacterMovement();
-            pacman.updateSpeed();
-            redGhost.updateSpeed();
-            pinkGhost.updateSpeed();
-            blueGhost.updateSpeed();
-            orangeGhost.updateSpeed();
-            initBoard(boardSize);
-            resetPositions();
-            try {
-                Thread.sleep(500);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
+    private void gameOver(){
+        synchronized (monitor){
+            inGame = false;
         }
-
+        String nameInput = (String) JOptionPane.showInputDialog(this, "What is your name?", "Game Over", JOptionPane.QUESTION_MESSAGE, gameOverImage, null,null);
+        if (nameInput != null){
+            HighScoresManager.saveHighScore(new HighScore(nameInput, score));
+        }
+        listener.onEscapePressed();
     }
 
-//    private void gameWon() {
-//        synchronized (monitor) {
-//            inGame = false;
-//        }
-//        String nameInput = (String) JOptionPane.showInputDialog(this, "What is your name?", "You Won!", JOptionPane.QUESTION_MESSAGE, youWonImage, null, null);
-//        if (nameInput != null){
-//            HighScoresManager.saveHighScore(new HighScore(nameInput, score));
-//        }
-//    }
+    private void gameWon() {
+        synchronized (monitor) {
+            inGame = false;
+        }
+        String nameInput = (String) JOptionPane.showInputDialog(this, "What is your name?", "You Won!", JOptionPane.QUESTION_MESSAGE, youWonImage, null, null);
+        if (nameInput != null){
+            HighScoresManager.saveHighScore(new HighScore(nameInput, score));
+        }
+        listener.onEscapePressed();
+    }
 
     private void startGhostsFrightenedState(){
         synchronized (monitor){

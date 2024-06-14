@@ -199,12 +199,6 @@ public class BlueGhost implements Runnable, Ghost {
         }
     }
 
-    public void updateSpeed() {
-        synchronized (monitor){
-            initSpeed++;
-        }
-    }
-
     @Override
     public void run() {
         new Thread(this::updateGhostIconLoop).start();
