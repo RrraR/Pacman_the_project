@@ -86,22 +86,22 @@ public class GameBoard extends JPanel implements KeyListener, Runnable {
         pacmanThread = new Thread(pacman);
 
         redGhost = new RedGhost(pacman, monitor, boardSize);
-        JLabel redGhostLabel = redGhost.getRedGhostLabel();
+        JLabel redGhostLabel = redGhost.getGhostLabel();
         gameBoard.add(redGhostLabel, JLayeredPane.POPUP_LAYER);
         redGhostThread = new Thread(redGhost);
 
         pinkGhost = new PinkGhost(pacman, monitor, boardSize);
-        JLabel pinkGhostLabel = pinkGhost.getPinkGhostLabel();
+        JLabel pinkGhostLabel = pinkGhost.getGhostLabel();
         gameBoard.add(pinkGhostLabel, JLayeredPane.POPUP_LAYER);
         pinkGhostThread = new Thread(pinkGhost);
 
         blueGhost = new BlueGhost(pacman, monitor, boardSize);
-        JLabel blueGhostLabel = blueGhost.getBlueGhostLabel();
+        JLabel blueGhostLabel = blueGhost.getGhostLabel();
         gameBoard.add(blueGhostLabel, JLayeredPane.POPUP_LAYER);
         blueGhostThread = new Thread(blueGhost);
 
         orangeGhost = new OrangeGhost(pacman, monitor, boardSize);
-        JLabel orangeGhostLabel = orangeGhost.getOrangeGhostLabel();
+        JLabel orangeGhostLabel = orangeGhost.getGhostLabel();
         gameBoard.add(orangeGhostLabel, JLayeredPane.POPUP_LAYER);
         orangeGhostThread = new Thread(orangeGhost);
 

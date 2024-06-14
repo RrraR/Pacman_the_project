@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class HighScoresManager {
-    private static final String highScoreFile = "src\\resources\\highScores.txt";
+    private static final String highScoreFile = "highScores.txt";
 
     public static void saveHighScore(HighScore highScore) {
         List<HighScore> highScores = loadHighScores();
@@ -32,6 +32,4 @@ public class HighScoresManager {
 
         return highScores;
     }
-
-
 }

@@ -12,7 +12,7 @@ public class Upgrade {
     private ImageIcon invincibilityIcon;
     private ImageIcon scoreMultiplierIcon;
     private ImageIcon ghostEaterIcon;
-    private final TimeTracker timeTracker;
+    private final TimeTracker upgradeTimer;
 
     public Upgrade(int x, int y, UpgradeType type) {
         loadImages();
@@ -26,7 +26,7 @@ public class Upgrade {
             case SCORE_MULTIPLIER -> this.icon = scoreMultiplierIcon;
             case GHOST_EATER -> this.icon = ghostEaterIcon;
         }
-        timeTracker = new TimeTracker();
+        upgradeTimer = new TimeTracker();
     }
 
     public int getX() {
@@ -54,14 +54,14 @@ public class Upgrade {
     }
 
     public void startUpgradeTimer(){
-        timeTracker.start();
+        upgradeTimer.start();
     }
 
     public void stopUpgradeTimer(){
-        timeTracker.stopTracking();
+        upgradeTimer.stopTracking();
     }
 
     public int getTimeOnUpgrade(){
-        return timeTracker.getSecondsPassed();
+        return upgradeTimer.getSecondsPassed();
     }
 }
