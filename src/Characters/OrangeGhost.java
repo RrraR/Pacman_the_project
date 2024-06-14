@@ -20,15 +20,19 @@ public class OrangeGhost implements Runnable, Ghost {
     private ImageIcon[] frightenedFlashingGhostImages;
     private ImageIcon eyesGhostImages;
 
-    private final int startPositionX = 240;
-    private final int startPositionY = 209;
+    private int startPositionX;
+    private int startPositionY;
 
-    private int panelX = 240;
-    private int panelY = 209;
+    private int panelX;
+    private int panelY;
+
+    private int initMovementX;
+    private int initMovementY;
 
     private int currentGhostImageIndex;
     private Directions currentGhostOrientation;
-    private int speed = 2;
+    private int initSpeed = 2;
+    private int speed = initSpeed;
     private final Pacman pacman;
     private final Object monitor;
 
@@ -47,11 +51,12 @@ public class OrangeGhost implements Runnable, Ghost {
     private final TimeTracker frightTimeTracker;
     private GhostState ghostState;
 
-    public OrangeGhost(int[][] board, Pacman pacman, Object monitor){
+    public OrangeGhost(Pacman pacman, Object monitor, String boardSize){
         loadImages();
+        initInitialVals(boardSize);
         currentGhostImageIndex = 0;
         currentGhostOrientation = Directions.RIGHT;
-        this.pathfinding = new PathFinding(board);
+        this.pathfinding = new PathFinding();
         this.nodeTargetX = panelX;
         this.nodeTargetY = panelY;
         this.pacman = pacman;
@@ -66,6 +71,51 @@ public class OrangeGhost implements Runnable, Ghost {
         frightTimeTracker = new TimeTracker();
         upgrades = new ArrayList<>();
         ghostState = GhostState.CHASE;
+    }
+
+    private void initInitialVals(String boardSize){
+        switch (boardSize){
+            case "23x24":
+                startPositionX = 240;
+                startPositionY = 209;
+                panelX = startPositionX;
+                panelY = startPositionY;
+                initMovementX = 213;
+                initMovementY = 153;
+                break;
+            case "27x18":
+                startPositionX = 279;
+                startPositionY = 194;
+                panelX = startPositionX;
+                panelY = startPositionY;
+                initMovementX = 247;
+                initMovementY = 136;
+                break;
+            case "21x21":
+                startPositionX = 220;
+                startPositionY = 193;
+                panelX = startPositionX;
+                panelY = startPositionY;
+                initMovementX = 190;
+                initMovementY = 136;
+                break;
+            case "31x11":
+                startPositionX = 313;
+                startPositionY = 98;
+                panelX = startPositionX;
+                panelY = startPositionY;
+                initMovementX = 285;
+                initMovementY = 60;
+                break;
+            case "15x21":
+                startPositionX = 161;
+                startPositionY = 230;
+                panelX = startPositionX;
+                panelY = startPositionY;
+                initMovementX = 135;
+                initMovementY = 174;
+                break;
+        }
     }
 
     private void updateGhostIconLoop() {
@@ -148,6 +198,12 @@ public class OrangeGhost implements Runnable, Ghost {
         }
     }
 
+    public void updateSpeed() {
+        synchronized (monitor){
+            initSpeed++;
+        }
+    }
+
     @Override
     public void run() {
         new Thread(this::updateGhostIconLoop).start();
@@ -161,7 +217,7 @@ public class OrangeGhost implements Runnable, Ghost {
                 if (ghostState == GhostState.SPAWN && (getGhostCordX()/boardDimensions == startPositionX/boardDimensions && panelY/boardDimensions == startPositionY/boardDimensions)){
                     synchronized (monitor) {
                         ghostState = GhostState.CHASE;
-                        speed = 2;
+                        speed = initSpeed;
                     }
                 }
 
@@ -169,8 +225,7 @@ public class OrangeGhost implements Runnable, Ghost {
                         getGhostCordY() >= cageTopLeftY && getGhostCordY() <= cageBottomRightY;
 
                 if (isInCage){
-//                //todo fix passing coords like this
-                    moveGhost(225, 153);
+                    moveGhost(initMovementX, initMovementY);
                 }else {
                     int[] ghostTarget = getGhostTarget();
                     moveGhost(ghostTarget[0], ghostTarget[1]);
@@ -190,7 +245,7 @@ public class OrangeGhost implements Runnable, Ghost {
     public void startFrightenedState(){
         synchronized (monitor){
             ghostState = GhostState.FRIGHTENED;
-            speed = 1;
+            speed = initSpeed - 1;
         }
         new Thread(this::checkIfFrightenedLoop).start();
     }
@@ -200,7 +255,7 @@ public class OrangeGhost implements Runnable, Ghost {
         while (getGhostState() == GhostState.FRIGHTENED){
             if (frightTimeTracker.getSecondsPassed() >= 6){
                 synchronized (monitor){
-                    speed = 2;
+                    speed = initSpeed;
                     ghostState = GhostState.CHASE;
                 }
             }
@@ -336,7 +391,7 @@ public class OrangeGhost implements Runnable, Ghost {
             pathIndex = 0;
             currentGhostImageIndex = 0;
             currentGhostOrientation = Directions.RIGHT;
-            speed = 2;
+            speed = initSpeed;
             upgrades.clear();
         }
         updateGhostLabelPosition();

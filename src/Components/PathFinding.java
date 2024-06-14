@@ -2,16 +2,16 @@ package Components;
 
 import java.util.*;
 import java.util.List;
-import static Components.GameBoard.*;
+import static Components.Boards.*;
+import static Components.GameBoard.board;
 
 public class PathFinding {
 
-    private final int[][] board;
+//    private final int[][] board;
     private final int width;
     private final int height;
 
-    public PathFinding(int[][] board) {
-        this.board = board;
+    public PathFinding() {
         this.width = board[0].length;
         this.height = board.length;
     }

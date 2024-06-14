@@ -18,16 +18,17 @@ public class PacmanGame implements GameEventListener {
     private JPanel startGamePanel;
     private JPanel gamePanel;
     private JScrollPane highScoresPanel;
+    private String[] boardSized = { "23x24", "27x18", "21x21", "31x11", "15x21"};
 
     public PacmanGame(){
         frame = new JFrame("Pacman");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setBackground(Color.black);
         frame.setLayout(new CardLayout());
-        frame.setResizable(false);
+//        frame.setResizable(false);
         frame.setFocusable(true);
         //todo pass size from calculations based on the board
-        frame.setPreferredSize(new Dimension(437, 542));
+//        frame.setPreferredSize(new Dimension(437, 542));
 
         try {
             Font font = Font.createFont(Font.TRUETYPE_FONT, getClass().getClassLoader().getResource("resources\\fonts\\pacman.ttf").openStream());
@@ -43,8 +44,6 @@ public class PacmanGame implements GameEventListener {
         }
 
         createStartScreen();
-//        createGameScreen();
-//        createHighScoresPanel();
 
         frame.add(startGamePanel, "StartScreen");
 
@@ -81,6 +80,7 @@ public class PacmanGame implements GameEventListener {
         startGamePanel = new JPanel();
         startGamePanel.setBackground(Color.black);
         startGamePanel.setLayout(new GridBagLayout());
+        startGamePanel.setPreferredSize(new Dimension(285, 285));
         GridBagConstraints gbc = new GridBagConstraints();
 
         ImageIcon pacmanText = new ImageIcon(getClass().getClassLoader().getResource("resources\\other\\pacman_logo.png"));
@@ -130,24 +130,33 @@ public class PacmanGame implements GameEventListener {
 
         gbc.gridx = 0;
         gbc.gridy = 3;
-        gbc.insets = new Insets(5, 0, 5, 0);
+        gbc.insets = new Insets(5, 0, 20, 0);
         startGamePanel.add(exitButton, gbc);
+//        frame.pack();
     }
 
     private void createGameScreen() {
+        String selectedBoardSize = (String) JOptionPane.showInputDialog(frame, "Choose the board size", "Choose Board size", JOptionPane.QUESTION_MESSAGE, null, boardSized, boardSized[0]);
+        if (selectedBoardSize == null){
+            return;
+        }
         gamePanel = new JPanel();
         gamePanel.setLayout(new BorderLayout());
-        GameBoard gameBoard = new GameBoard(this);
+        GameBoard gameBoard = new GameBoard(this, selectedBoardSize);
         ScoreBar scoreBar = new ScoreBar(gameBoard);
         gamePanel.add(scoreBar, BorderLayout.NORTH);
         gamePanel.add(gameBoard);
         gamePanel.setFocusable(true);
         gamePanel.addKeyListener(gameBoard);
+        Dimension gameBoardDimensions = gameBoard.getPreferredSize();
+        Dimension scoreBarDimensions = scoreBar.getPreferredSize();
+        gamePanel.setPreferredSize(new Dimension(gameBoardDimensions.width, gameBoardDimensions.height + scoreBarDimensions.height));
 
         frame.add(gamePanel, "GameScreen");
 
         CardLayout cl = (CardLayout) frame.getContentPane().getLayout();
         cl.show(frame.getContentPane(), "GameScreen");
+        frame.pack();
 
         gamePanel.requestFocusInWindow();
         Thread gameBoardThread = new Thread(gameBoard);
@@ -159,6 +168,7 @@ public class PacmanGame implements GameEventListener {
     private void createHighScoresPanel() {
         highScoresPanel = new JScrollPane();
         highScoresPanel.setBackground(Color.black);
+        highScoresPanel.setPreferredSize(startGamePanel.getPreferredSize());
         JPanel panel = new JPanel();
         panel.setBackground(Color.black);
         panel.setLayout(new GridBagLayout());
@@ -215,13 +225,14 @@ public class PacmanGame implements GameEventListener {
 
         CardLayout cl = (CardLayout) frame.getContentPane().getLayout();
         cl.show(frame.getContentPane(), "HighScoresScreen");
-
+        frame.pack();
     }
 
 
     public void showStartScreen() {
         CardLayout cl = (CardLayout) frame.getContentPane().getLayout();
         cl.show(frame.getContentPane(), "StartScreen");
+        frame.pack();
     }
 
     @Override

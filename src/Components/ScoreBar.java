@@ -6,6 +6,7 @@ import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 
+import static Components.GameBoard.boardDimensions;
 import static Components.GameBoard.inGame;
 
 public class ScoreBar extends JPanel implements Runnable {
@@ -17,11 +18,13 @@ public class ScoreBar extends JPanel implements Runnable {
     private final ImageIcon heartIcon = new ImageIcon(getClass().getClassLoader().getResource("resources\\other\\heart13.png"));
 
     public ScoreBar(GameBoard gameBoard){
-        setPreferredSize(new Dimension(437, 50));
+
         this.setLayout(null);
         setBackground(Color.black);
 
         this.gameBoard = gameBoard;
+
+        setPreferredSize(new Dimension(GameBoard.board[0].length * boardDimensions, 50));
 
         scoreTextLabel = new JLabel("HIGH SCORE");
         scoreNumLabel = new JLabel(gameBoard.getScore());
@@ -45,11 +48,12 @@ public class ScoreBar extends JPanel implements Runnable {
 
         scoreTextLabel.setBackground(Color.black);
         scoreTextLabel.setForeground(Color.white);
-        scoreTextLabel.setBounds(140, 12, 120, 25);
+        int xBounds = GameBoard.board[0].length * boardDimensions / 2;
+        scoreTextLabel.setBounds(xBounds, 12, 100, 25);
 
         scoreNumLabel.setBackground(Color.black);
         scoreNumLabel.setForeground(Color.white);
-        scoreNumLabel.setBounds(250, 12, 100, 25);
+        scoreNumLabel.setBounds(xBounds + 100, 12, 90, 25);
 
         for (int i = 0; i < gameBoard.getPacmanLives(); i++){
             livesLabels.add(new JLabel(heartIcon));

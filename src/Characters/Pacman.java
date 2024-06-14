@@ -8,19 +8,20 @@ import java.awt.*;
 import java.util.List;
 
 import static Components.GameBoard.*;
+import static Components.Boards.*;
 
 public class Pacman implements Runnable {
 
-    private final int startPositionX = 209;
-    private final int startPositionY = 269;
+    private int startPositionX;
+    private int startPositionY;
 
     private final Object monitor;
-    private int panelX = 209;
-    private int panelY = 266;
-    private int currentSpeedX = 3; // Change in x-coordinate per frame
-    private int currentSpeedY = 0; // Change in y-coordinate per frame
-    private final int initSpeedX = 3;
-    private final int initSpeedY = 3;
+    private int panelX;
+    private int panelY;
+    private int initSpeedX = 3;
+    private int initSpeedY = 3;
+    private int currentSpeedX = initSpeedX;
+    private int currentSpeedY = 0;
     private int currentPacmanImageIndex;
     private Directions currentPacmanOrientation;
     private ImageIcon[] pacmanImagesRight;
@@ -40,8 +41,9 @@ public class Pacman implements Runnable {
     private List<Upgrade> activeUpgrades;
     private volatile boolean isCheckActiveUpdatesThreadStarted = false;
 
-    public Pacman(Object monitor){
+    public Pacman(Object monitor, String boardSize){
         loadImages();
+        initInitialVals(boardSize);
         currentPacmanImageIndex = 0;
         currentPacmanOrientation = Directions.RIGHT;
         this.monitor = monitor;
@@ -55,6 +57,48 @@ public class Pacman implements Runnable {
         isGhostEater = false;
         scoreMultiplier = 1;
         activeUpgrades = Collections.synchronizedList(new ArrayList<>());
+    }
+
+    private void initInitialVals(String boardSize){
+        switch (boardSize){
+            case "23x24":
+                startPositionX = 209;
+                startPositionY = 269;
+                panelX = startPositionX;
+                panelY = startPositionY;
+                break;
+            case "27x18":
+                startPositionX = 247;
+                startPositionY = 250;
+                panelX = startPositionX;
+                panelY = startPositionY;
+                break;
+            case "21x21":
+                startPositionX = 190;
+                startPositionY = 250;
+                panelX = startPositionX;
+                panelY = startPositionY;
+                break;
+            case "31x11":
+                startPositionX = 285;
+                startPositionY = 136;
+                panelX = startPositionX;
+                panelY = startPositionY;
+                break;
+            case "15x21":
+                startPositionX = 136;
+                startPositionY = 288;
+                panelX = startPositionX;
+                panelY = startPositionY;
+                break;
+        }
+    }
+
+    public void updateSpeed(){
+        synchronized (monitor){
+            initSpeedY++;
+            initSpeedX++;
+        }
     }
 
     private void updatePacmanIconLoop() {
@@ -99,23 +143,20 @@ public class Pacman implements Runnable {
         while (inGame){
             checkPaused();
             synchronized (monitor){
-                //todo fix this looks weird
-                if (panelX - 13 > 0 && panelX < board.length * boardDimensions && panelX / boardDimensions < 22 && checkCollision()){
-//                    return;
-                }else {
+
+                if (panelX - 13 < 0 || panelX/boardDimensions >= board[0].length - 1 || !checkCollision()){
                     panelX += currentSpeedX;
                     panelY += currentSpeedY;
 
                     //wall passing
                     if (panelX <= 0){
-                        panelX = board.length * boardDimensions - 20;
-                    } else if (panelX >= board.length * boardDimensions - boardDimensions) {
+                        panelX = board[0].length * boardDimensions - 19;
+                    } else if (panelX >= board[0].length * boardDimensions - 13) {
                         panelX = 0;
                     }
 
                     recenterPacman();
                     updatePacmanLabelPosition();
-//                    System.out.println("checkActiveUpdatesThread " + checkActiveUpdatesThread.getState());
                     if (!activeUpgrades.isEmpty() && !isCheckActiveUpdatesThreadStarted){
                         synchronized (monitor){
                             if (!isCheckActiveUpdatesThreadStarted){
@@ -336,7 +377,7 @@ public class Pacman implements Runnable {
         synchronized (monitor) {
             panelX = startPositionX;
             panelY = startPositionY;
-            currentSpeedX = 3;
+            currentSpeedX = initSpeedX;
             currentSpeedY = 0;
             currentPacmanOrientation = Directions.RIGHT;
             currentPacmanImageIndex = 0;

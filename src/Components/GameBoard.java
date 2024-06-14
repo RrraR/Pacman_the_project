@@ -9,51 +9,17 @@ import java.awt.event.KeyListener;
 import java.util.ArrayList;
 import java.util.List;
 
-public class GameBoard extends JPanel implements KeyListener, Runnable {
-    public final static int W=1; // Wall.
-    public final static int F=2; // Crossroads with food
-    public final static int E=3; // Empty space
-    public final static int D=4; // Door space
-    public final static int U=5; // Ghost Upgrade space
-    public final static int P=6; // Power Pellet
+import static Components.Boards.*;
 
-    public static int[][] board = {
-        //-----------------------X---H-------------------------//
-        //board.length - rows
-        //board[0].length - cols
-        //r24
-        //c23                  r
-        {W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W},
-        {W,F,F,F,F,F,F,F,F,F,F,W,F,F,F,F,F,F,F,F,F,F,W},
-        {W,F,W,W,W,F,W,W,W,W,F,W,F,W,W,W,W,F,W,W,W,F,W},
-        {W,P,W,W,W,F,W,W,W,W,F,W,F,W,W,W,W,F,W,W,W,P,W},
-        {W,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,W},
-        {W,F,W,W,W,F,W,F,W,W,W,W,W,W,W,F,W,F,W,W,W,F,W},
-        {W,F,F,F,F,F,W,F,F,F,F,W,F,F,F,F,W,F,F,F,F,F,W},
-        {W,W,W,W,W,F,W,W,W,W,F,W,F,W,W,W,W,F,W,W,W,W,W},
-        {E,E,E,E,W,F,W,F,F,F,F,F,F,F,F,F,W,F,W,E,E,E,E},
-        {E,E,E,E,W,F,W,F,W,W,W,D,W,W,W,F,W,F,W,E,E,E,E},
-        {W,W,W,W,W,F,W,F,W,E,E,E,E,E,W,F,W,F,W,W,W,W,W},
-        {F,F,F,F,F,F,F,F,W,E,E,E,E,E,W,F,F,F,F,F,F,F,F},
-        {W,W,W,W,W,F,W,F,W,E,E,E,E,E,W,F,W,F,W,W,W,W,W},
-        {E,E,E,E,W,F,W,F,W,W,W,W,W,W,W,F,W,F,W,E,E,E,E},
-        {E,E,E,E,W,F,W,F,F,F,F,F,F,F,F,F,W,F,W,E,E,E,E},//r14
-        {W,W,W,W,W,F,W,F,W,W,W,W,W,W,W,F,W,F,W,W,W,W,W},
-        {W,F,F,F,F,F,F,F,F,F,F,W,F,F,F,F,F,F,F,F,F,F,W},
-        {W,F,W,W,W,F,W,W,W,W,F,W,F,W,W,W,W,F,W,W,W,F,W},
-        {W,P,F,F,W,F,F,F,F,F,F,F,F,F,F,F,F,F,W,F,F,P,W},
-        {W,W,W,F,W,F,W,F,W,W,W,W,W,W,W,F,W,F,W,F,W,W,W},
-        {W,F,F,F,F,F,W,F,F,F,F,W,F,F,F,F,W,F,F,F,F,F,W},
-        {W,F,W,W,W,W,W,W,W,W,F,W,F,W,W,W,W,W,W,W,W,F,W},
-        {W,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,W},
-        {W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W}
-    };
+public class GameBoard extends JPanel implements KeyListener, Runnable {
+
+    public static int[][] board;
 
     public static int boardDimensions = 19;
-    public static int cageTopLeftX = 152;
-    public static int cageTopLeftY = 171;
-    public static int cageBottomRightX = 266;
-    public static int cageBottomRightY = 247;
+    public static int cageTopLeftX;
+    public static int cageTopLeftY;
+    public static int cageBottomRightX;
+    public static int cageBottomRightY;
 
     public static List<int[]> foodCells;
 
@@ -73,73 +39,124 @@ public class GameBoard extends JPanel implements KeyListener, Runnable {
     private ImageIcon foodImage;
     private ImageIcon powerFoodImage;
     private ImageIcon youWonImage;
-    private ImageIcon youLostImage;
+    private ImageIcon gameOverImage;
 
     private JLabel[][] cells;
     private int mapHeight;
     private int mapWidth;
-    private JLayeredPane multiBoard;
+    private JLayeredPane gameBoard;
     private JPanel background;
     private List<Upgrade> upgrades;
     private int consecutiveGhostsEaten = 0;
     private GameEventListener listener;
-    private boolean gameEnded = false;
+    private String boardSize;
 
-
-    public GameBoard(GameEventListener listener) {
+    public GameBoard(GameEventListener listener, String boardSize) {
+        this.boardSize = boardSize;
+        initBoard(boardSize);
         this.listener = listener;
         mapHeight = board.length * boardDimensions;
         mapWidth = board[0].length * boardDimensions;
         this.setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
         this.setBackground(Color.black);
         foodCells = new ArrayList<>();
-        getAllFoodCells();
+//        getAllFoodCells();
         inGame = true;
         foodImage = new ImageIcon(getClass().getClassLoader().getResource("resources\\food13\\food2.png"));
         powerFoodImage = new ImageIcon(getClass().getClassLoader().getResource("resources\\food13\\Pfood.png"));
-        youLostImage = new ImageIcon(getClass().getClassLoader().getResource("resources\\other\\gameover.png"));
+        gameOverImage = new ImageIcon(getClass().getClassLoader().getResource("resources\\other\\gameover.png"));
         youWonImage = new ImageIcon(getClass().getClassLoader().getResource("resources\\other\\victory.png"));
         upgrades = new ArrayList<>();
 
-//        this.setPreferredSize(new Dimension(mapHeight, mapWidth));
+        this.setPreferredSize(new Dimension(mapWidth, mapHeight));
 
         cells = new JLabel[board.length][board[0].length];
 
-        multiBoard = new JLayeredPane();
-        multiBoard.setPreferredSize(new Dimension(mapWidth, mapHeight));
+        gameBoard = new JLayeredPane();
+        gameBoard.setPreferredSize(new Dimension(mapWidth, mapHeight));
 
         JPanel background = createBackground();
         background.setBounds(0, 0, mapWidth, mapHeight);
 
-        multiBoard.add(background, JLayeredPane.DEFAULT_LAYER);
-        multiBoard.setVisible(true);
+        gameBoard.add(background, JLayeredPane.DEFAULT_LAYER);
+        gameBoard.setVisible(true);
 
-        pacman = new Pacman(monitor);
+        pacman = new Pacman(monitor, boardSize);
         JLabel pacmanLabel = pacman.getPacmanLabel();
-        multiBoard.add(pacmanLabel, JLayeredPane.POPUP_LAYER);
+        gameBoard.add(pacmanLabel, JLayeredPane.POPUP_LAYER);
         pacmanThread = new Thread(pacman);
 
-        redGhost = new RedGhost(board, pacman, monitor);
+        redGhost = new RedGhost(pacman, monitor, boardSize);
         JLabel redGhostLabel = redGhost.getRedGhostLabel();
-        multiBoard.add(redGhostLabel, JLayeredPane.POPUP_LAYER);
+        gameBoard.add(redGhostLabel, JLayeredPane.POPUP_LAYER);
         redGhostThread = new Thread(redGhost);
 
-        pinkGhost = new PinkGhost(board, pacman, monitor);
+        pinkGhost = new PinkGhost(pacman, monitor, boardSize);
         JLabel pinkGhostLabel = pinkGhost.getPinkGhostLabel();
-        multiBoard.add(pinkGhostLabel, JLayeredPane.POPUP_LAYER);
+        gameBoard.add(pinkGhostLabel, JLayeredPane.POPUP_LAYER);
         pinkGhostThread = new Thread(pinkGhost);
 
-        blueGhost = new BlueGhost(board, pacman, monitor);
+        blueGhost = new BlueGhost(pacman, monitor, boardSize);
         JLabel blueGhostLabel = blueGhost.getBlueGhostLabel();
-        multiBoard.add(blueGhostLabel, JLayeredPane.POPUP_LAYER);
+        gameBoard.add(blueGhostLabel, JLayeredPane.POPUP_LAYER);
         blueGhostThread = new Thread(blueGhost);
 
-        orangeGhost = new OrangeGhost(board, pacman, monitor);
+        orangeGhost = new OrangeGhost(pacman, monitor, boardSize);
         JLabel orangeGhostLabel = orangeGhost.getOrangeGhostLabel();
-        multiBoard.add(orangeGhostLabel, JLayeredPane.POPUP_LAYER);
+        gameBoard.add(orangeGhostLabel, JLayeredPane.POPUP_LAYER);
         orangeGhostThread = new Thread(orangeGhost);
 
-        this.add(multiBoard);
+        this.add(gameBoard);
+    }
+
+    public void initBoard(String input){
+        //todo dunno this looks weird
+        switch (input){
+            case "23x24":
+                board = getBoardCopy(Boards.board23x24);
+                cageTopLeftX = 152;
+                cageTopLeftY = 171;
+                cageBottomRightX = 266;
+                cageBottomRightY = 247;
+                break;
+            case "27x18":
+                board = getBoardCopy(Boards.board27x18);
+                cageTopLeftX = 190;
+                cageTopLeftY = 152;
+                cageBottomRightX = 304;
+                cageBottomRightY = 228;
+                break;
+            case "21x21":
+                board = getBoardCopy(Boards.board21x21);
+                cageTopLeftX = 133;
+                cageTopLeftY = 152;
+                cageBottomRightX = 247;
+                cageBottomRightY = 228;
+                break;
+            case "31x11":
+                board = getBoardCopy(Boards.board31x11);
+                cageTopLeftX = 228;
+                cageTopLeftY = 76;
+                cageBottomRightX = 342;
+                cageBottomRightY = 114;
+                break;
+            case "15x21":
+                board = getBoardCopy(Boards.board15x21);
+                cageTopLeftX = 76;
+                cageTopLeftY = 190;
+                cageBottomRightX = 190;
+                cageBottomRightY = 266;
+                break;
+        }
+        getAllFoodCells();
+    }
+
+    private static int[][] getBoardCopy(int[][] original) {
+        int[][] copy = new int[original.length][];
+        for (int i = 0; i < original.length; i++) {
+            copy[i] = original[i].clone();
+        }
+        return copy;
     }
 
     private JPanel createBackground() {
@@ -200,51 +217,9 @@ public class GameBoard extends JPanel implements KeyListener, Runnable {
 
     private void checkFoodAndUpgradesCells(){
         int pacmanPosX, pacmanPosY;
-        //todo possibly move get upgrades to a separate method
-        List<Upgrade> redGhostUpgrades, pinkGhostUpgrades, blueGhostUpgrades, orangeGhostsUpgrades;
         synchronized (monitor){
             pacmanPosX = pacman.getPacmanCordX();
             pacmanPosY = pacman.getPacmanCordY();
-            redGhostUpgrades = redGhost.getUpgrades();
-            pinkGhostUpgrades = pinkGhost.getUpgrades();
-            blueGhostUpgrades = blueGhost.getUpgrades();
-            orangeGhostsUpgrades = orangeGhost.getUpgrades();
-        }
-
-        if (!redGhostUpgrades.isEmpty()){
-            for (Upgrade upgrade : redGhostUpgrades) {
-                upgrades.add(upgrade);
-                board[upgrade.getY()][upgrade.getX()] = U;
-                cells[upgrade.getY()][upgrade.getX()].setIcon(upgrade.getIcon());
-            }
-            redGhost.removeProcessedUpgrades();
-        }
-
-        if (!pinkGhostUpgrades.isEmpty()){
-            for (Upgrade upgrade : pinkGhostUpgrades) {
-                upgrades.add(upgrade);
-                board[upgrade.getY()][upgrade.getX()] = U;
-                cells[upgrade.getY()][upgrade.getX()].setIcon(upgrade.getIcon());
-            }
-            pinkGhost.removeProcessedUpgrades();
-        }
-
-        if (!blueGhostUpgrades.isEmpty()){
-            for (Upgrade upgrade : blueGhostUpgrades) {
-                upgrades.add(upgrade);
-                board[upgrade.getY()][upgrade.getX()] = U;
-                cells[upgrade.getY()][upgrade.getX()].setIcon(upgrade.getIcon());
-            }
-            blueGhost.removeProcessedUpgrades();
-        }
-
-        if (!orangeGhostsUpgrades.isEmpty()){
-            for (Upgrade upgrade : orangeGhostsUpgrades) {
-                upgrades.add(upgrade);
-                board[upgrade.getY()][upgrade.getX()] = U;
-                cells[upgrade.getY()][upgrade.getX()].setIcon(upgrade.getIcon());
-            }
-            orangeGhost.removeProcessedUpgrades();
         }
 
         synchronized (monitor){
@@ -270,13 +245,70 @@ public class GameBoard extends JPanel implements KeyListener, Runnable {
         }
     }
 
-    private Upgrade getUpgrade(int x, int y){
-        for (Upgrade upgrade : upgrades) {
-            if (upgrade.getX() == x && upgrade.getY() == y){
-                return upgrade;
+    private void collectUpgradesFromGhosts(){
+        while (inGame){
+            synchronized (monitor){
+                List<Upgrade> redGhostUpgrades, pinkGhostUpgrades, blueGhostUpgrades, orangeGhostsUpgrades;
+                redGhostUpgrades = redGhost.getUpgrades();
+                pinkGhostUpgrades = pinkGhost.getUpgrades();
+                blueGhostUpgrades = blueGhost.getUpgrades();
+                orangeGhostsUpgrades = orangeGhost.getUpgrades();
+
+
+                if (!redGhostUpgrades.isEmpty()){
+                    for (Upgrade upgrade : redGhostUpgrades) {
+                        upgrades.add(upgrade);
+                        board[upgrade.getY()][upgrade.getX()] = U;
+                        cells[upgrade.getY()][upgrade.getX()].setIcon(upgrade.getIcon());
+                    }
+                    redGhost.removeProcessedUpgrades();
+                }
+
+                if (!pinkGhostUpgrades.isEmpty()){
+                    for (Upgrade upgrade : pinkGhostUpgrades) {
+                        upgrades.add(upgrade);
+                        board[upgrade.getY()][upgrade.getX()] = U;
+                        cells[upgrade.getY()][upgrade.getX()].setIcon(upgrade.getIcon());
+                    }
+                    pinkGhost.removeProcessedUpgrades();
+                }
+
+                if (!blueGhostUpgrades.isEmpty()){
+                    for (Upgrade upgrade : blueGhostUpgrades) {
+                        upgrades.add(upgrade);
+                        board[upgrade.getY()][upgrade.getX()] = U;
+                        cells[upgrade.getY()][upgrade.getX()].setIcon(upgrade.getIcon());
+                    }
+                    blueGhost.removeProcessedUpgrades();
+                }
+
+                if (!orangeGhostsUpgrades.isEmpty()){
+                    for (Upgrade upgrade : orangeGhostsUpgrades) {
+                        upgrades.add(upgrade);
+                        board[upgrade.getY()][upgrade.getX()] = U;
+                        cells[upgrade.getY()][upgrade.getX()].setIcon(upgrade.getIcon());
+                    }
+                    orangeGhost.removeProcessedUpgrades();
+                }
+            }
+
+            try {
+                Thread.sleep(30);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
             }
         }
-        return null;
+    }
+
+    private Upgrade getUpgrade(int x, int y){
+        synchronized (monitor){
+            for (Upgrade upgrade : upgrades) {
+                if (upgrade.getX() == x && upgrade.getY() == y){
+                    return upgrade;
+                }
+            }
+            return null;
+        }
     }
 
     @Override
@@ -287,6 +319,8 @@ public class GameBoard extends JPanel implements KeyListener, Runnable {
             throw new RuntimeException(e);
         }
 
+//        System.out.println(foodCells.size());
+
         pacmanThread.start();
         redGhostThread.start();
         pinkGhostThread.start();
@@ -294,6 +328,7 @@ public class GameBoard extends JPanel implements KeyListener, Runnable {
         orangeGhostThread.start();
 
         new Thread(this::characterCollisionLoop).start();
+        new Thread(this::collectUpgradesFromGhosts).start();
 
         while (inGame){
             // todo possibly move or fix this
@@ -305,17 +340,11 @@ public class GameBoard extends JPanel implements KeyListener, Runnable {
                 consecutiveGhostsEaten = 0;
             }
 
-            if(getNumberOfFoodsLeft() <= 0){
-                gameWon();
+            if(getNumberOfFoodsLeft() <= 200){
+                currentGameOver();
             }
 
             checkFoodAndUpgradesCells();
-//            System.out.println("pacmanThread.getState() " + pacmanThread.getState());
-//            System.out.println("redGhostThread.getState() " + redGhostThread.getState());
-//            System.out.println("pinkGhostThread.getState() " + pinkGhostThread.getState());
-//            System.out.println("blueGhostThread.getState() " + blueGhostThread.getState());
-//            System.out.println("orangeGhostThread.getState() " + orangeGhostThread.getState());
-//            System.out.println();
 
             try {
                 Thread.sleep(30);
@@ -324,9 +353,6 @@ public class GameBoard extends JPanel implements KeyListener, Runnable {
                 inGame = false;
             }
         }
-
-//        String name = JOptionPane.showInputDialog(this,
-//                "What is your name?", null);
 
     }
 
@@ -373,7 +399,7 @@ public class GameBoard extends JPanel implements KeyListener, Runnable {
 
                 pacman.removeLive();
                 if (pacman.getLives() <= 0) {
-                    gameLost();
+                    currentGameOver();
                 } else {
                     resetPositions();
                     try {
@@ -386,30 +412,42 @@ public class GameBoard extends JPanel implements KeyListener, Runnable {
         }
     }
 
-    private void gameLost(){
-        synchronized (monitor){
-            inGame = false;
-        }
-        String nameInput = (String) JOptionPane.showInputDialog(this, "What is your name?", "You Lost", JOptionPane.QUESTION_MESSAGE, youLostImage, null,null);
-        if (nameInput != null){
-            HighScoresManager.saveHighScore(new HighScore(nameInput, score));
-
-//            HighScore hs2 = new HighScore("test", 20);
-//            List<HighScore> test = new ArrayList<>();
-//            test.add(highScore);
-//            test.add(hs2);
-//            HighScoresManager.saveHighScore(test);
+    private void currentGameOver(){
+        if (pacman.getLives() <= 0){
+            synchronized (monitor){
+                inGame = false;
+            }
+            String nameInput = (String) JOptionPane.showInputDialog(this, "What is your name?", "Game Over", JOptionPane.QUESTION_MESSAGE, gameOverImage, null,null);
+            if (nameInput != null){
+                HighScoresManager.saveHighScore(new HighScore(nameInput, score));
+            }
+        } else{
+//            stopCharacterMovement();
+            pacman.updateSpeed();
+            redGhost.updateSpeed();
+            pinkGhost.updateSpeed();
+            blueGhost.updateSpeed();
+            orangeGhost.updateSpeed();
+            initBoard(boardSize);
+            resetPositions();
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
         }
 
     }
 
-    private void gameWon() {
-        synchronized (monitor) {
-            inGame = false;
-        }
-        String nameInput = (String) JOptionPane.showInputDialog(this, "What is your name?", "You Won!", JOptionPane.QUESTION_MESSAGE, youWonImage, null, null);
-
-    }
+//    private void gameWon() {
+//        synchronized (monitor) {
+//            inGame = false;
+//        }
+//        String nameInput = (String) JOptionPane.showInputDialog(this, "What is your name?", "You Won!", JOptionPane.QUESTION_MESSAGE, youWonImage, null, null);
+//        if (nameInput != null){
+//            HighScoresManager.saveHighScore(new HighScore(nameInput, score));
+//        }
+//    }
 
     private void startGhostsFrightenedState(){
         synchronized (monitor){

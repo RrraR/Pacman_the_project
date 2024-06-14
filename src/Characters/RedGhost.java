@@ -20,15 +20,19 @@ public class RedGhost implements Runnable, Ghost {
     private ImageIcon[] frightenedFlashingGhostImages;
     private ImageIcon eyesGhostImages;
 
-    private final int startPositionX = 215;
-    private final int startPositionY = 153;
+    private int startPositionX;
+    private int startPositionY;
 
-    private int panelX = 215;
-    private int panelY = 153;
+    private int panelX;
+    private int panelY;
+
+    private int returnToSpawnX;
+    private int returnToSpawnY;
 
     private int currentGhostImageIndex;
     private Directions currentGhostOrientation;
-    private int speed = 2;
+    private int initSpeed = 2;
+    private int speed = initSpeed;
     private final Pacman pacman;
     private final Object monitor;
 
@@ -47,11 +51,12 @@ public class RedGhost implements Runnable, Ghost {
     private final TimeTracker frightTimeTracker;
     private GhostState ghostState;
 
-    public RedGhost(int[][] board, Pacman pacman, Object monitor){
+    public RedGhost(Pacman pacman, Object monitor, String boardSize){
         loadImages();
+        initInitialVals(boardSize);
         currentGhostImageIndex = 0;
         currentGhostOrientation = Directions.RIGHT;
-        this.pathfinding = new PathFinding(board);
+        this.pathfinding = new PathFinding();
         this.nodeTargetX = panelX;
         this.nodeTargetY = panelY;
         this.pacman = pacman;
@@ -66,6 +71,51 @@ public class RedGhost implements Runnable, Ghost {
         frightTimeTracker = new TimeTracker();
         upgrades = new ArrayList<>();
         ghostState = GhostState.CHASE;
+    }
+
+    private void initInitialVals(String boardSize){
+        switch (boardSize){
+            case "23x24":
+                startPositionX = 215;
+                startPositionY = 153;
+                panelX = startPositionX;
+                panelY = startPositionY;
+                returnToSpawnX = startPositionX;
+                returnToSpawnY = 209;
+                break;
+            case "27x18":
+                startPositionX = 250;
+                startPositionY = 136;
+                panelX = startPositionX;
+                panelY = startPositionY;
+                returnToSpawnX = startPositionX;
+                returnToSpawnY = 193;
+                break;
+            case "21x21":
+                startPositionX = 195;
+                startPositionY = 136;
+                panelX = startPositionX;
+                panelY = startPositionY;
+                returnToSpawnX = startPositionX;
+                returnToSpawnY = 193;
+                break;
+            case "31x11":
+                startPositionX = 288;
+                startPositionY = 60;
+                panelX = startPositionX;
+                panelY = startPositionY;
+                returnToSpawnX = startPositionX;
+                returnToSpawnY = 98;
+                break;
+            case "15x21":
+                startPositionX = 136;
+                startPositionY = 174;
+                panelX = startPositionX;
+                panelY = startPositionY;
+                returnToSpawnX = startPositionX;
+                returnToSpawnY = 230;
+                break;
+        }
     }
 
     private void updateGhostIconLoop() {
@@ -148,6 +198,12 @@ public class RedGhost implements Runnable, Ghost {
         }
     }
 
+    public void updateSpeed() {
+        synchronized (monitor){
+            initSpeed++;
+        }
+    }
+
     @Override
     public void run() {
         new Thread(this::updateGhostIconLoop).start();
@@ -157,20 +213,20 @@ public class RedGhost implements Runnable, Ghost {
             checkPaused();
 
             //todo figure out where to move this
-            if (ghostState == GhostState.SPAWN && (getGhostCordX()/boardDimensions == 213/boardDimensions && getGhostCordY()/boardDimensions == 209/boardDimensions)){
+            if (ghostState == GhostState.SPAWN && (getGhostCordX()/boardDimensions == returnToSpawnX/boardDimensions && getGhostCordY()/boardDimensions == returnToSpawnY/boardDimensions)){
                 synchronized (monitor){
                     ghostState = GhostState.CHASE;
-                    speed = 2;
+                    speed = initSpeed;
                 }
             }
 
             boolean isInCage = getGhostCordX() >= cageTopLeftX && getGhostCordX() <= cageBottomRightX  &&
                     getGhostCordY() >= cageTopLeftY && getGhostCordY() <= cageBottomRightY;
 
-
             if (isInCage){
-//                //todo fix passing coords like this
-                moveGhost(225, 153);
+                moveGhost(startPositionX, startPositionY);
+//                ghostState = GhostState.CHASE;
+//                speed = 2;
             }else {
                 int[] ghostTarget = getGhostTarget();
                 moveGhost(ghostTarget[0], ghostTarget[1]);
@@ -190,7 +246,7 @@ public class RedGhost implements Runnable, Ghost {
     public void startFrightenedState(){
         synchronized (monitor){
             ghostState = GhostState.FRIGHTENED;
-            speed = 1;
+            speed = initSpeed - 1;
         }
         new Thread(this::checkIfFrightenedLoop).start();
     }
@@ -200,7 +256,7 @@ public class RedGhost implements Runnable, Ghost {
             while (getGhostState() == GhostState.FRIGHTENED){
                 if (frightTimeTracker.getSecondsPassed() >= 6){
                     synchronized (monitor){
-                        speed = 2;
+                        speed = initSpeed;
                         ghostState = GhostState.CHASE;
                     }
                 }
@@ -222,20 +278,12 @@ public class RedGhost implements Runnable, Ghost {
 
     private int[] getGhostTarget(){
         switch (getGhostState()){
-            //todo
-//            case SCATTER:
-//                int pacmanPosX, pacmanPosY;
-//                synchronized (monitor){
-//                    pacmanPosX = pacman.getPacmanCordX();
-//                    pacmanPosY = pacman.getPacmanCordY();
-//                }
-//                return new int[]{pacmanPosX, pacmanPosY};
             case FRIGHTENED:
                 int index = ThreadLocalRandom.current().nextInt(foodCells.size());
                 int[] randomCell = foodCells.get(index);
                 return new int[]{randomCell[1] * boardDimensions, randomCell[0] * boardDimensions};
             case SPAWN:
-                return new int[]{213, 209};
+                return new int[]{returnToSpawnX, returnToSpawnY};
             default:
                 int pacmanPosX, pacmanPosY;
                 synchronized (monitor){
@@ -334,7 +382,7 @@ public class RedGhost implements Runnable, Ghost {
             pathIndex = 0;
             currentGhostImageIndex = 0;
             currentGhostOrientation = Directions.RIGHT;
-            speed = 2;
+            speed = initSpeed;
             upgrades.clear();
         }
         updateGhostLabelPosition();
