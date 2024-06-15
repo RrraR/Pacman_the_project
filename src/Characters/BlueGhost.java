@@ -174,7 +174,7 @@ public class BlueGhost implements Runnable, Ghost {
             boolean isInCage = getGhostCordX() >= cageTopLeftX && getGhostCordX() <= cageBottomRightX  &&
                     getGhostCordY() >= cageTopLeftY && getGhostCordY() <= cageBottomRightY;
 
-            if ((getGhostState() == GhostState.CHASE || getGhostState() == GhostState.SCATTER) && !isInCage){
+            if (getGhostState() == GhostState.CHASE && !isInCage){
                 if (upgradesTimeTracker.getSecondsPassed() % 5 == 0 && !upgradeGenerated){
                     if (ThreadLocalRandom.current().nextInt(100) < 25) {
                         int x = getGhostCordX()/boardDimensions;

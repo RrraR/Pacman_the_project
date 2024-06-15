@@ -18,6 +18,8 @@ public class PacmanGame {
     private JPanel startGamePanel;
     private JScrollPane highScoresPanel;
     private String[] boardSized = { "23x24", "27x18", "21x21", "31x11", "15x21"};
+    private HighScoreModel namesModel; // Declare as class fields
+    private HighScoreModel scoresModel;
 
     public PacmanGame(){
         frame = new JFrame("Pacman");
@@ -40,8 +42,11 @@ public class PacmanGame {
         }
 
         createStartScreen();
+        createHighScoresScreen();
 
         frame.add(startGamePanel, "StartScreen");
+        frame.add(highScoresPanel, "HighScoresScreen");
+
 
         frame.addKeyListener(new KeyAdapter() {
             @Override
@@ -93,7 +98,7 @@ public class PacmanGame {
         highScoresButton.setBackground(Color.black);
         highScoresButton.setForeground(Color.white);
         highScoresButton.setBorder(new LineBorder(Color.BLUE));
-        highScoresButton.addActionListener(e -> createHighScoresPanel());
+        highScoresButton.addActionListener(e -> showHighScoresScreen());
 
         JButton exitButton = new JButton("Exit");
         exitButton.setBackground(Color.black);
@@ -128,7 +133,6 @@ public class PacmanGame {
         gbc.gridy = 3;
         gbc.insets = new Insets(5, 0, 20, 0);
         startGamePanel.add(exitButton, gbc);
-//        frame.pack();
     }
 
     private void createGameScreen() {
@@ -141,10 +145,23 @@ public class PacmanGame {
         gameFrame.setVisible(true);
     }
 
-    private void createHighScoresPanel() {
+    private void createHighScoresScreen() {
         highScoresPanel = new JScrollPane();
         highScoresPanel.setBackground(Color.black);
         highScoresPanel.setPreferredSize(startGamePanel.getPreferredSize());
+
+        List<HighScore> scoresList = loadHighScores();
+        scoresList.sort(Comparator.comparing(HighScore::getScore).reversed());
+        namesModel = new HighScoreModel(scoresList, true);
+        scoresModel = new HighScoreModel(scoresList, false);
+
+        JPanel displayPanel = constructHighScoresScreen();
+        highScoresPanel.setViewportView(displayPanel);
+
+        frame.pack();
+    }
+
+    private JPanel constructHighScoresScreen(){
         JPanel panel = new JPanel();
         panel.setBackground(Color.black);
         panel.setLayout(new GridBagLayout());
@@ -168,21 +185,17 @@ public class PacmanGame {
         gbc.gridy = 0;
         panel.add(scoreLabel, gbc);
 
-        List<HighScore> scoresList = loadHighScores();
-        scoresList.sort(Comparator.comparing(HighScore::getScore));
-        List<String> playersNames = new ArrayList<>();
-        List<String> playersScores = new ArrayList<>();
-        for (HighScore score : scoresList.reversed()) {
-            playersNames.add(score.getPlayerName());
-            playersScores.add(String.valueOf(score.getScore()));
-        }
-        JList<String> namesJList = new JList<>(playersNames.toArray(new String[0]));
+        JList<String> namesJList = new JList<>(namesModel);
         namesJList.setBackground(Color.black);
         namesJList.setForeground(Color.white);
+        namesJList.setCellRenderer(new CustomListCellRenderer());
+        namesJList.setEnabled(false);
 
-        JList<String> scoresJList = new JList<>(playersScores.toArray(new String[0]));
+        JList<String> scoresJList = new JList<>(scoresModel);
         scoresJList.setBackground(Color.black);
         scoresJList.setForeground(Color.white);
+        scoresJList.setCellRenderer(new CustomListCellRenderer());
+        scoresJList.setEnabled(false);
 
         gbc.gridx = 0;
         gbc.gridy = 1;
@@ -194,14 +207,21 @@ public class PacmanGame {
         gbc.gridx = 1;
         gbc.gridy = 1;
         panel.add(scoresJList, gbc);
+        return panel;
+    }
 
-        highScoresPanel.setViewportView(panel);
+    private void showHighScoresScreen(){
+        highScoresPanel.setViewportView(null);
+        List<HighScore> updatedScores = loadHighScores();
+        updatedScores.sort(Comparator.comparing(HighScore::getScore).reversed());
+        namesModel.updateHighScores(updatedScores); // Update namesModel
+        scoresModel.updateHighScores(updatedScores); // Update scoresModel
 
-        frame.add(highScoresPanel, "HighScoresScreen");
+        JPanel displayPanel = constructHighScoresScreen();
+        highScoresPanel.setViewportView(displayPanel);
 
         CardLayout cl = (CardLayout) frame.getContentPane().getLayout();
         cl.show(frame.getContentPane(), "HighScoresScreen");
-        frame.pack();
     }
 
 
