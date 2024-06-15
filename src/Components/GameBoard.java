@@ -195,7 +195,7 @@ public class GameBoard extends JPanel implements KeyListener, Runnable {
         int number = 0;
         for (int i = 0; i < board.length; i++) {
             for (int j = 0; j < board[0].length; j++) {
-                if (board[i][j] == F) {
+                if (board[i][j] == F || board[i][j] == P) {
                     number++;
                 }
             }
@@ -373,13 +373,11 @@ public class GameBoard extends JPanel implements KeyListener, Runnable {
 
         if (isCollision(pacmanX, pacmanY, ghostX, ghostY) && ghostState != GhostState.SPAWN) {
             if (ghostState == GhostState.FRIGHTENED || pacman.isGhostEater) {
-                // Pacman eats the ghost
                 ghost.ghostHasBeenEaten();
                 consecutiveGhostsEaten++;
                 updateScore((int) (200 * Math.pow(2, consecutiveGhostsEaten)));
 
             } else if (!pacman.isInvincible) {
-                // Pacman loses a life
                 stopCharacterMovement();
 
                 Thread pacmanDeathAnimationThread = new Thread(pacman::deathAnimationLoop);

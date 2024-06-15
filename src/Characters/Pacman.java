@@ -94,11 +94,6 @@ public class Pacman implements Runnable {
         }
     }
 
-//    public void updateSpeed(){
-//        initSpeedY = 4;
-//        initSpeedX = 4;
-//    }
-
     private void updatePacmanIconLoop() {
         while (inGame){
             if (!paused){
@@ -146,7 +141,6 @@ public class Pacman implements Runnable {
                     panelX += currentSpeedX;
                     panelY += currentSpeedY;
 
-                    //wall passing
                     if (panelX <= 0){
                         panelX = board[0].length * boardDimensions - 13;
                     } else if (panelX >= board[0].length * boardDimensions - 13) {
@@ -338,7 +332,7 @@ public class Pacman implements Runnable {
     public void updateAmountOfFoodEaten(){
         amountOfFoodConsumed++;
     }
-//todo does this need synchronization??
+
     public void setMoveRight(){
         if (board[panelY/boardDimensions][(panelX)/boardDimensions + 1] != W) {
             synchronized (monitor){
@@ -350,7 +344,7 @@ public class Pacman implements Runnable {
     }
 
     public void setMoveLeft(){
-        if (board[panelY / boardDimensions][(panelX + 13)/ boardDimensions - 1] != W){
+        if (board[panelY / boardDimensions][(panelX + boardDimensions)/ boardDimensions - 1] != W){
             synchronized (monitor){
                 currentSpeedX = -initSpeedX;
                 currentSpeedY = 0;
@@ -395,13 +389,11 @@ public class Pacman implements Runnable {
     }
 
     private void recenterPacman() {
-        // recenter horizontally
         if (currentPacmanOrientation == Directions.UP || currentPacmanOrientation == Directions.DOWN) {
             int offsetX = (panelX % boardDimensions < boardDimensions / 2) ? -(panelX % boardDimensions) : (boardDimensions - panelX % boardDimensions);
             panelX += offsetX + 3;
         }
 
-        // recenter vertically
         if (currentPacmanOrientation == Directions.RIGHT || currentPacmanOrientation == Directions.LEFT) {
             int offsetY = (panelY % boardDimensions < boardDimensions / 2) ? -(panelY % boardDimensions) : (boardDimensions - panelY % boardDimensions);
             panelY += offsetY + 3;

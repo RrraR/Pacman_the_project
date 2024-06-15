@@ -6,6 +6,7 @@ import javax.swing.plaf.FontUIResource;
 import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.awt.event.WindowEvent;
 import java.io.IOException;
 import java.util.*;
 import java.util.List;
@@ -18,7 +19,7 @@ public class PacmanGame {
     private JPanel startGamePanel;
     private JScrollPane highScoresPanel;
     private String[] boardSized = { "23x24", "27x18", "21x21", "31x11", "15x21"};
-    private HighScoreModel namesModel; // Declare as class fields
+    private HighScoreModel namesModel;
     private HighScoreModel scoresModel;
 
     public PacmanGame(){
@@ -104,7 +105,7 @@ public class PacmanGame {
         exitButton.setBackground(Color.black);
         exitButton.setForeground(Color.WHITE);
         exitButton.setBorder(new LineBorder(Color.BLUE));
-        exitButton.addActionListener(e -> System.exit(0));
+        exitButton.addActionListener(e -> frame.dispatchEvent(new WindowEvent(frame, WindowEvent.WINDOW_CLOSING)));
 
         Dimension buttonSize = new Dimension(150, 40);
         newGameButton.setPreferredSize(buttonSize);
@@ -141,8 +142,11 @@ public class PacmanGame {
             return;
         }
 
-        GameFrame gameFrame = new GameFrame(selectedBoardSize);
-        gameFrame.setVisible(true);
+        SwingUtilities.invokeLater(new Runnable() {
+            public void run() {
+                new GameFrame(selectedBoardSize);
+            }
+        });
     }
 
     private void createHighScoresScreen() {
@@ -214,8 +218,8 @@ public class PacmanGame {
         highScoresPanel.setViewportView(null);
         List<HighScore> updatedScores = loadHighScores();
         updatedScores.sort(Comparator.comparing(HighScore::getScore).reversed());
-        namesModel.updateHighScores(updatedScores); // Update namesModel
-        scoresModel.updateHighScores(updatedScores); // Update scoresModel
+        namesModel.updateHighScores(updatedScores);
+        scoresModel.updateHighScores(updatedScores);
 
         JPanel displayPanel = constructHighScoresScreen();
         highScoresPanel.setViewportView(displayPanel);

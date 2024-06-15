@@ -19,6 +19,7 @@ public class GameFrame extends JFrame implements GameEventListener {
         Thread scoreBarThread = new Thread(scoreBar);
         gameBoardThread.start();
         scoreBarThread.start();
+        this.setVisible(true);
     }
 
     @Override

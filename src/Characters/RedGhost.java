@@ -51,6 +51,8 @@ public class RedGhost implements Runnable, Ghost {
     private final TimeTracker frightTimeTracker;
     private GhostState ghostState;
 
+    private volatile boolean upgradeGenerated = false;
+
     public RedGhost(Pacman pacman, Object monitor, String boardSize){
         loadImages();
         initInitialCoords(boardSize);
@@ -167,14 +169,19 @@ public class RedGhost implements Runnable, Ghost {
     }
 
     private void generateUpgradeLoop(){
-        boolean upgradeGenerated = false;
+        upgradeGenerated = false;
         upgradesTimeTracker.start();
         while (inGame){
             boolean isInCage = getGhostCordX() >= cageTopLeftX && getGhostCordX() <= cageBottomRightX  &&
                     getGhostCordY() >= cageTopLeftY && getGhostCordY() <= cageBottomRightY;
 
+            boolean checkUpgradeGenerated;
+            synchronized (monitor){
+                checkUpgradeGenerated = upgradeGenerated;
+            }
+
             if (getGhostState() == GhostState.CHASE && !isInCage){
-                if (upgradesTimeTracker.getSecondsPassed() % 5 == 0 && !upgradeGenerated){
+                if (upgradesTimeTracker.getSecondsPassed() % 5 == 0 && !checkUpgradeGenerated){
                     if (ThreadLocalRandom.current().nextInt(100) < 25) {
                         int x = getGhostCordX()/boardDimensions;
                         int y = getGhostCordY()/boardDimensions;
@@ -184,7 +191,9 @@ public class RedGhost implements Runnable, Ghost {
                             upgrades.add(upgrade);
                         }
                     }
-                    upgradeGenerated = true;
+                    synchronized (monitor){
+                        upgradeGenerated = true;
+                    }
                 } else if (upgradesTimeTracker.getSecondsPassed() % 5 != 0){
                     upgradeGenerated = false;
                 }
@@ -210,6 +219,7 @@ public class RedGhost implements Runnable, Ghost {
                 synchronized (monitor){
                     ghostState = GhostState.CHASE;
                     speed = initSpeed;
+                    upgrades.clear();
                 }
             }
 
